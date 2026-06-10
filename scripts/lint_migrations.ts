@@ -279,8 +279,28 @@ const CREATE_AUTH_PATTERNS: RegExp[] = [
   /\bCREATE\s+SCHEMA\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\b/i,
 ];
 
+// Exemption annotation — same shape/precedence as AUDIT-FK-OK.
+// Use on the matched line OR within the prior 5 non-blank raw lines.
+// Canonical use case: the official Supabase signup hook
+//   `CREATE TRIGGER ... ON auth.users FOR EACH ROW EXECUTE FUNCTION public.X()`
+// which is applied via service_role at migration time.
+const AUDIT_AUTH_OK_RE = /--\s*AUDIT-AUTH-OK\s*:/i;
+
+function hasAuthOkAnnotation(rawLines: string[], lineNo: number): boolean {
+  if (AUDIT_AUTH_OK_RE.test(rawLines[lineNo - 1] ?? "")) return true;
+  let scanned = 0;
+  for (let j = lineNo - 2; j >= 0 && scanned < 5; j--) {
+    const prev = rawLines[j];
+    if (prev.trim() === "") continue;
+    scanned++;
+    if (AUDIT_AUTH_OK_RE.test(prev)) return true;
+  }
+  return false;
+}
+
 function checkNoAuthCreates(file: string, body: string): Finding[] {
   const findings: Finding[] = [];
+  const rawLines = body.split("\n");
   const sanitized = stripBlockComments(body)
     .split("\n")
     .map((l, idx) => ({ idx, sql: stripLineComment(l) }))
@@ -301,6 +321,8 @@ function checkNoAuthCreates(file: string, body: string): Finding[] {
 
   // Collect violations from all patterns; dedup by line to avoid double-reporting
   // when more than one pattern would otherwise match the same statement.
+  // Skip lines carrying an `-- AUDIT-AUTH-OK:` annotation (inline or within 5
+  // prior raw lines) — same exemption shape as AUDIT-FK-OK.
   const reported = new Set<number>();
   for (const pattern of CREATE_AUTH_PATTERNS) {
     let searchFrom = 0;
@@ -309,7 +331,7 @@ function checkNoAuthCreates(file: string, body: string): Finding[] {
       if (!match || match.index === undefined) break;
       const absIdx = searchFrom + match.index;
       const lineNo = charToLine[absIdx] ?? 0;
-      if (!reported.has(lineNo)) {
+      if (!reported.has(lineNo) && !hasAuthOkAnnotation(rawLines, lineNo)) {
         reported.add(lineNo);
         findings.push({
           level: "error",
@@ -318,7 +340,9 @@ function checkNoAuthCreates(file: string, body: string): Finding[] {
           rule: "no-auth-objects",
           message:
             "CREATE targets the `auth.` schema — helpers must live in `app.` " +
-            "(spec §5.11). Move the object to public/app or drop it.",
+            "(spec §5.11). Move the object to public/app or drop it, or add " +
+            "`-- AUDIT-AUTH-OK: <reason>` annotation if this is the documented " +
+            "exception (e.g., official Supabase signup hook trigger).",
         });
       }
       const semi = buffer.indexOf(";", absIdx);

@@ -150,6 +150,9 @@ COMMENT ON FUNCTION public.create_user_profile() IS
 -- DROP+CREATE pra idempotência (CREATE TRIGGER IF NOT EXISTS não existe).
 -- Trigger vive em schema gerenciado (auth) — Supabase Cloud permite isso
 -- quando a migration é aplicada via service_role (pattern oficial).
+-- AUDIT-AUTH-OK: official Supabase signup hook pattern — trigger on auth.users
+-- to mirror new auth.users rows into public.user_profiles. Applied via
+-- service_role at migration time per Supabase Cloud docs §5.12.
 DROP TRIGGER IF EXISTS trg_create_user_profile ON auth.users;
 CREATE TRIGGER trg_create_user_profile
   AFTER INSERT ON auth.users
