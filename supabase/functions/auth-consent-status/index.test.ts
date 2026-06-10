@@ -28,7 +28,6 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   computePurposeStatus,
   type ConsentPurpose,
@@ -36,6 +35,7 @@ import { nonNull } from '../_shared/_test_utils.ts';
   extractVersionFromSetting,
   type HandlerDeps,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure helpers

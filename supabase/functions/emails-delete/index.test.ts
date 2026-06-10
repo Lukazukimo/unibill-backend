@@ -31,12 +31,12 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   extractConnectedEmailId,
   type DeleteEmailResponse,
   type HandlerDeps,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests

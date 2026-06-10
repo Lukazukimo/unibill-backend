@@ -24,7 +24,6 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   type ConnectEmailResponse,
   type HandlerDeps,
@@ -32,6 +31,7 @@ import { nonNull } from '../_shared/_test_utils.ts';
   normalizeAppPassword,
   validateConnectBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests (no client, no IMAP)

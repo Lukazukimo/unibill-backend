@@ -27,7 +27,6 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   type AcceptConsentResponse,
   CONSENT_PURPOSES,
@@ -38,6 +37,7 @@ import { nonNull } from '../_shared/_test_utils.ts';
   LEGAL_BASES,
   validateAcceptBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure helpers

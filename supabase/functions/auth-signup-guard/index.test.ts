@@ -22,7 +22,6 @@ import {
   verifyCaptcha,
 } from '../_shared/captcha.ts';
 import {
-import { nonNull } from '../_shared/_test_utils.ts';
   countAndIncrementIp,
   IP_RATE_RESOURCE_SIGNUP,
   IP_RATE_SIGNUP_LIMIT,
@@ -30,6 +29,7 @@ import { nonNull } from '../_shared/_test_utils.ts';
   ipRateKey,
   peekIpRate,
 } from '../_shared/ip_rate.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Constants (lock the spec)
