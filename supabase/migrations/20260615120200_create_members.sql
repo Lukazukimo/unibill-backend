@@ -82,7 +82,7 @@ COMMENT ON TYPE public.member_role IS
 CREATE TABLE IF NOT EXISTS public.members (
   id            uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   household_id  uuid NOT NULL REFERENCES public.households(id),
-  user_id       uuid NOT NULL REFERENCES auth.users(id),
+  user_id       uuid NOT NULL REFERENCES auth.users(id), -- AUDIT-FK-OK: ownership (member-of-household belongs to user)
   role          public.member_role NOT NULL DEFAULT 'member',
   invited_by    uuid,
   joined_at     timestamptz NOT NULL DEFAULT now(),

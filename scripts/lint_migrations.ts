@@ -248,11 +248,36 @@ function checkHeader(file: string, lines: string[]): Finding[] {
 // -----------------------------------------------------------------------------
 // Rule 4: no CREATE in auth.*
 // -----------------------------------------------------------------------------
-// Matches `CREATE [OR REPLACE] [UNIQUE] <kind> [IF NOT EXISTS] auth.<name>`.
-// Kinds covered: TABLE, INDEX, VIEW, MATERIALIZED VIEW, FUNCTION, TRIGGER,
-// POLICY, TYPE, SEQUENCE, SCHEMA. Comment lines are stripped before matching.
-const CREATE_AUTH_RE =
-  /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:UNIQUE\s+)?(?:MATERIALIZED\s+VIEW|TABLE|INDEX|VIEW|FUNCTION|TRIGGER|POLICY|TYPE|SEQUENCE|SCHEMA)\b[^;]*?\bauth\./i;
+// Detects when a CREATE statement TARGETS the `auth.` schema. The target schema
+// appears in different positions depending on the CREATE kind, so we use one
+// pattern per kind instead of a single greedy `[^;]*?\bauth\.` which would also
+// flag legitimate `auth.uid()` calls inside `USING`/`WITH CHECK` clauses of
+// policies targeting `public.*` tables.
+//
+// Covered kinds (target schema position shown with «auth»):
+//   CREATE [OR REPLACE] [MATERIALIZED] VIEW «auth».name
+//   CREATE TABLE [IF NOT EXISTS] «auth».name
+//   CREATE [OR REPLACE] FUNCTION «auth».name
+//   CREATE TYPE «auth».name
+//   CREATE SEQUENCE «auth».name
+//   CREATE [UNIQUE] INDEX [name] ON «auth».table
+//   CREATE [OR REPLACE] TRIGGER name ... ON «auth».table
+//   CREATE POLICY name ON «auth».table
+//   CREATE SCHEMA «auth»
+const CREATE_AUTH_PATTERNS: RegExp[] = [
+  // Direct schema-prefixed targets: CREATE [OR REPLACE] <kind> [IF NOT EXISTS] auth.X
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+auth\./i,
+  /\bCREATE\s+TYPE\s+auth\./i,
+  /\bCREATE\s+SEQUENCE\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  // Table-attached targets: CREATE ... ON auth.table
+  /\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?(?:[a-zA-Z_][\w]*\s+)?ON\s+auth\./i,
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+[a-zA-Z_][\w]*\s+(?:BEFORE|AFTER|INSTEAD\s+OF)[^;]*?\bON\s+auth\./i,
+  /\bCREATE\s+POLICY\s+[a-zA-Z_][\w]*\s+ON\s+auth\./i,
+  // Schema creation itself
+  /\bCREATE\s+SCHEMA\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\b/i,
+];
 
 function checkNoAuthCreates(file: string, body: string): Finding[] {
   const findings: Finding[] = [];
@@ -274,25 +299,31 @@ function checkNoAuthCreates(file: string, body: string): Finding[] {
     charToLine.push(idx + 1);
   }
 
-  let searchFrom = 0;
-  while (searchFrom < buffer.length) {
-    CREATE_AUTH_RE.lastIndex = 0;
-    const match = buffer.slice(searchFrom).match(CREATE_AUTH_RE);
-    if (!match || match.index === undefined) break;
-    const absIdx = searchFrom + match.index;
-    const lineNo = charToLine[absIdx] ?? 0;
-    findings.push({
-      level: "error",
-      file,
-      line: lineNo,
-      rule: "no-auth-objects",
-      message:
-        "CREATE targets the `auth.` schema — helpers must live in `app.` " +
-        "(spec §5.11). Move the object to public/app or drop it.",
-    });
-    // Advance past the matched statement (next ';' or end).
-    const semi = buffer.indexOf(";", absIdx);
-    searchFrom = semi >= 0 ? semi + 1 : buffer.length;
+  // Collect violations from all patterns; dedup by line to avoid double-reporting
+  // when more than one pattern would otherwise match the same statement.
+  const reported = new Set<number>();
+  for (const pattern of CREATE_AUTH_PATTERNS) {
+    let searchFrom = 0;
+    while (searchFrom < buffer.length) {
+      const match = buffer.slice(searchFrom).match(pattern);
+      if (!match || match.index === undefined) break;
+      const absIdx = searchFrom + match.index;
+      const lineNo = charToLine[absIdx] ?? 0;
+      if (!reported.has(lineNo)) {
+        reported.add(lineNo);
+        findings.push({
+          level: "error",
+          file,
+          line: lineNo,
+          rule: "no-auth-objects",
+          message:
+            "CREATE targets the `auth.` schema — helpers must live in `app.` " +
+            "(spec §5.11). Move the object to public/app or drop it.",
+        });
+      }
+      const semi = buffer.indexOf(";", absIdx);
+      searchFrom = semi >= 0 ? semi + 1 : buffer.length;
+    }
   }
   return findings;
 }
