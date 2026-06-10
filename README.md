@@ -100,6 +100,17 @@ unibill-backend/
 5. Merge squash → release-please bot abre PR de release automático.
 6. Tag `v*.*.*` → deploy prod com manual approval no GitHub Environment.
 
+## TODOs
+
+- **Deep-link redirect** (spec §9.1, T-203): hoje só registramos o custom URL
+  scheme `unibill://` (`unibill://auth/callback`, `unibill://auth/recovery`,
+  `unibill://auth/magic-link`) em `supabase/config.toml`. Quando o domínio
+  `unibill.dev` for provisionado, adicionar `https://app.unibill.dev/auth/callback`
+  a `[auth].additional_redirect_urls` e hospedar `assetlinks.json` em
+  `https://unibill.dev/.well-known/` para habilitar Android App Links sem o
+  prompt "abrir com" (também elimina o fallback HTML "Abra este link no
+  celular com o app instalado").
+
 ## License
 
 Apache 2.0 — ver [LICENSE](LICENSE).
