@@ -148,12 +148,11 @@ Deno.test('verifyCaptcha returns ok on hCaptcha success', async () => {
   assert(result.ok);
   if (result.ok) assertEquals(result.bypassed, false);
   assert(calledWith, 'siteverify must be called');
-  if (calledWith) {
-    assertEquals(calledWith.url, 'https://api.hcaptcha.com/siteverify');
-    assert(calledWith.body.includes('secret=shh-secret'));
-    assert(calledWith.body.includes('response=client-token'));
-    assert(calledWith.body.includes('remoteip=1.2.3.4'));
-  }
+  const called = calledWith as NonNullable<typeof calledWith>;
+  assertEquals(called.url, 'https://api.hcaptcha.com/siteverify');
+  assert(called.body.includes('secret=shh-secret'));
+  assert(called.body.includes('response=client-token'));
+  assert(called.body.includes('remoteip=1.2.3.4'));
 });
 
 Deno.test('verifyCaptcha returns rejected on hCaptcha failure with codes', async () => {

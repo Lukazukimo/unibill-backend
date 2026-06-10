@@ -469,8 +469,9 @@ Deno.test('happy path inserts active row, captures ip + user-agent, emits event'
 
   // Event emitted with payload shape.
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'consent.accepted');
-  const payload = emitted!.payload as { version: number; data: Record<string, unknown> };
+  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  assertEquals(emittedEvent.type, 'consent.accepted');
+  const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.purpose, 'terms');
   assertEquals(payload.data.legal_basis, 'consent');
@@ -545,7 +546,8 @@ Deno.test('revoke_existing=true supersedes prior active and inserts new row', as
 
   // Event payload flags supersession.
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { superseded_previous: boolean } };
+  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const payload = emittedEvent.payload as { data: { superseded_previous: boolean } };
   assertEquals(payload.data.superseded_previous, true);
 });
 

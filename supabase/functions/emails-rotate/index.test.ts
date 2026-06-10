@@ -466,9 +466,10 @@ Deno.test('handler happy path: 200 + vault swap + metadata bump + event', async 
 
   // domain_event emitted
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'email.password_rotated');
-  assertEquals(emitted!.aggregate_id, id);
-  const payload = emitted!.payload as { version: number; data: Record<string, unknown> };
+  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  assertEquals(emittedEvent.type, 'email.password_rotated');
+  assertEquals(emittedEvent.aggregate_id, id);
+  const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.vault_secret_id, oldSecretId);
   assertEquals(payload.data.rotated_at, FIXED_NOW.toISOString());

@@ -303,8 +303,9 @@ Deno.test('no active consents + published versions → needs_reconsent=true + ev
 
   // Event emitted with both stale purposes.
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'consent.required');
-  const payload = emitted!.payload as {
+  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  assertEquals(emittedEvent.type, 'consent.required');
+  const payload = emittedEvent.payload as {
     version: number;
     data: { stale_purposes: string[] };
   };
@@ -382,7 +383,8 @@ Deno.test('terms matches, privacy missing → needs_reconsent=true with privacy-
   assertEquals(body.purposes.privacy.needs_reconsent, true);
 
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { stale_purposes: string[] } };
+  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const payload = emittedEvent.payload as { data: { stale_purposes: string[] } };
   assertEquals(payload.data.stale_purposes, ['privacy']);
 });
 

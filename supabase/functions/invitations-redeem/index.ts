@@ -655,13 +655,13 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // Compensação best-effort: remove o member que acabamos de inserir
       // (a menos que ele já existisse — nesse caso é "ownership" de outra request).
       if (!memberAlreadyExists) {
-        await client
-          .from('members')
-          .delete()
-          .eq('household_id', invite.household_id)
-          .eq('user_id', caller.id)
-          .then(() => undefined)
-          .catch(() => undefined);
+        try {
+          await client
+            .from('members')
+            .delete()
+            .eq('household_id', invite.household_id)
+            .eq('user_id', caller.id);
+        } catch { /* best-effort compensation */ }
       }
       return jsonResponse(500, { error: 'internal_error', code: 'invitation_update_failed' });
     }
@@ -670,13 +670,13 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // Race condition: outra request consumiu o convite entre lookup e update.
       // Compensa o member insert (se foi novo).
       if (!memberAlreadyExists) {
-        await client
-          .from('members')
-          .delete()
-          .eq('household_id', invite.household_id)
-          .eq('user_id', caller.id)
-          .then(() => undefined)
-          .catch(() => undefined);
+        try {
+          await client
+            .from('members')
+            .delete()
+            .eq('household_id', invite.household_id)
+            .eq('user_id', caller.id);
+        } catch { /* best-effort compensation */ }
       }
       await recordFailure({
         client, emitEvent, correlationId: ctx.correlation_id, caller, code,
