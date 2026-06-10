@@ -49,6 +49,19 @@ make test-db            # pgTAP
 deno test --allow-all   # Edge Function tests
 ```
 
+## CI
+
+GitHub Actions roda em todo PR e em push pra `main` (ver [`.github/workflows/ci.yml`](.github/workflows/ci.yml)). Jobs:
+
+- **`lint`** — `deno fmt --check` + `deno lint` em `supabase/functions/`. Usa `denoland/setup-deno@v2`.
+- **`migration-lint`** — roda `scripts/lint_migrations.sh`, que rejeita arquivos em `supabase/migrations/` que não casem com `^[0-9]{14}_[a-z0-9_]+\.sql$` (timestamp UTC de 14 dígitos + snake_case).
+- **`test-db`** — sobe um service container `postgres:15` e (em tasks futuras, T-105+) aplica migrations + roda pgTAP. Hoje é esqueleto nomeado pra branch protection já casar.
+- **`test-deno`** — roda `deno test --allow-all --coverage=coverage` em Edge Functions. Esqueleto até T-125 trazer os primeiros testes em `supabase/functions/_shared/`.
+
+Push pra `main` com CI verde dispara [`.github/workflows/deploy-dev.yml`](.github/workflows/deploy-dev.yml) via `workflow_run`, que aponta pro GitHub Environment `dev` (histórico de deploy fica registrado) e usa os secrets `SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF_DEV` + `SUPABASE_DB_PASSWORD_DEV`. Os steps de `supabase db push --linked` e `supabase functions deploy` ainda são placeholders e ganham corpo quando o projeto Supabase dev for provisionado (checklist §11.5).
+
+Estratégia de branches detalhada na spec §11.1.
+
 ## Estrutura de pastas
 
 ```

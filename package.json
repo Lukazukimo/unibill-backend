@@ -1,0 +1,21 @@
+{
+  "name": "unibill-backend",
+  "private": true,
+  "description": "Unibill backend workspace (Supabase migrations, Edge Functions, tooling). Make is the source of truth; these npm scripts are thin wrappers for ergonomics.",
+  "license": "Apache-2.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "help": "make help",
+    "db:reset": "make db-reset",
+    "db:push:dev": "make db-push-dev",
+    "db:push:prod": "make db-push-prod",
+    "test:db": "make test-db",
+    "functions:serve": "make functions-serve",
+    "functions:deploy": "make functions-deploy",
+    "lint": "make lint",
+    "format": "make format",
+    "seed": "make seed"
+  }
+}

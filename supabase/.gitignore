@@ -1,0 +1,7 @@
+# Supabase CLI runtime artefacts — never commit.
+.branches/
+.temp/
+
+# Local environment overrides for `supabase start` / CLI commands.
+.env
+.env.local
