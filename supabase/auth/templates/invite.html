@@ -1,0 +1,115 @@
+<!--
+  Supabase Auth template: household invitation (pt-BR).
+  Ref: T-202 — Spec §9.1 (invite flow + invitation security) and §6.x (households).
+  Date: 2026-06-10.
+
+  This template is rendered by GoTrue when a household admin uses Supabase's
+  `auth.admin.inviteUserByEmail()` flow (account does NOT yet exist). The
+  in-app household invitation flow (POST /invitations/redeem with the 8-char
+  alphanumeric code from T-109) is a separate path and does NOT trigger this
+  template — that one is delivered transactionally by an Edge Function (T-227)
+  with its own pt-BR copy. We still ship this template so the GoTrue admin
+  endpoint, if ever invoked (e.g. to bootstrap a household admin), produces a
+  branded pt-BR email instead of the English default.
+
+  Supabase variables:
+    {{ .ConfirmationURL }}  → unibill://auth/callback?token=...&type=invite
+    {{ .Token }}            → 6-digit OTP (manual entry fallback)
+    {{ .Email }}            → recipient
+    {{ .Data }}             → JSON metadata passed to inviteUserByEmail()
+                              (we DO NOT trust user-supplied fields here —
+                               only display a generic copy to avoid HTML
+                               injection through template interpolation)
+-->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <title>Convite para o Unibill</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f6f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1f2933;">
+  <span style="display:none!important;visibility:hidden;mso-hide:all;font-size:1px;line-height:1px;max-height:0;max-width:0;opacity:0;overflow:hidden;">
+    Voce foi convidado pra entrar em uma casa no Unibill.
+  </span>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#f5f6f8;">
+    <tr>
+      <td align="center" style="padding:32px 16px;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="max-width:600px;background:#ffffff;border-radius:12px;box-shadow:0 1px 3px rgba(15,23,42,0.06);">
+          <tr>
+            <td style="padding:32px 32px 16px 32px;">
+              <div style="font-size:14px;font-weight:600;letter-spacing:0.08em;color:#5b6b7a;text-transform:uppercase;">Unibill</div>
+              <h1 style="margin:8px 0 0 0;font-size:24px;line-height:1.3;color:#0f172a;">Voce foi convidado</h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 16px 32px;font-size:16px;line-height:1.6;color:#334155;">
+              <p style="margin:0 0 16px 0;">Ola!</p>
+              <p style="margin:0 0 16px 0;">
+                Alguem usando o Unibill te convidou pra fazer parte de uma casa
+                e dividir contas em conjunto. Pra aceitar o convite e criar
+                sua conta, toque no botao abaixo no seu celular:
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding:8px 32px 24px 32px;">
+              <a href="{{ .ConfirmationURL }}"
+                 style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;font-weight:600;font-size:16px;padding:14px 28px;border-radius:8px;">
+                Aceitar convite
+              </a>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 24px 32px;font-size:14px;line-height:1.6;color:#475569;">
+              <p style="margin:0 0 8px 0;">Ou copie e cole este link no app:</p>
+              <p style="margin:0 0 16px 0;word-break:break-all;">
+                <a href="{{ .ConfirmationURL }}" style="color:#2563eb;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+              </p>
+              <p style="margin:0 0 4px 0;">Codigo pra entrada manual:</p>
+              <p style="margin:0 0 16px 0;font-family:'SFMono-Regular',Consolas,'Liberation Mono',Menlo,monospace;font-size:22px;letter-spacing:0.18em;font-weight:600;color:#0f172a;">
+                {{ .Token }}
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 24px 32px;">
+              <hr style="border:0;border-top:1px solid #e2e8f0;margin:0 0 16px 0;" />
+              <p style="margin:0 0 12px 0;font-size:14px;line-height:1.6;color:#475569;">
+                <strong>Abrindo no computador?</strong> O link so funciona no celular com o
+                app Unibill instalado. Aponte a camera do seu celular pra este QR Code:
+              </p>
+              <p align="center" style="margin:0 0 12px 0;">
+                <img
+                  src="https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data={{ .ConfirmationURL }}"
+                  alt="QR Code pra abrir o link no app Unibill"
+                  width="220" height="220"
+                  style="border:1px solid #e2e8f0;border-radius:8px;display:block;margin:0 auto;" />
+              </p>
+              <p style="margin:0 0 8px 0;font-size:14px;line-height:1.6;color:#475569;">
+                Ainda nao tem o app? Baixe o APK mais recente em
+                <a href="https://github.com/unibill/unibill-mobile/releases/latest" style="color:#2563eb;text-decoration:underline;">github.com/unibill/unibill-mobile/releases</a>.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 32px 32px 32px;font-size:12px;line-height:1.6;color:#64748b;">
+              <p style="margin:0 0 8px 0;">
+                Este convite expira em <strong>7 dias</strong>. Se voce nao esperava
+                este email, pode ignorar com tranquilidade — nenhuma conta sera
+                criada sem sua acao explicita.
+              </p>
+              <p style="margin:0;">
+                Unibill — projeto open source (Apache 2.0) ·
+                <a href="https://github.com/unibill" style="color:#64748b;text-decoration:underline;">github.com/unibill</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

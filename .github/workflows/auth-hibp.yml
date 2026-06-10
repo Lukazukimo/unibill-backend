@@ -1,0 +1,96 @@
+# auth-hibp.yml — integration test that GOTRUE_PASSWORD_HIBP_ENABLED is
+# actually enforcing the HIBP check in Supabase Auth. Runs:
+#   - nightly (drift detection: HIBP toggle silently disabled upstream, etc.)
+#   - on every PR touching auth-config (supabase/config.toml, supabase/auth/**,
+#     scripts/auth/**) — fail-fast before merging a config regression
+#
+# Strategy: boot the local Supabase stack with `supabase start` so we get a
+# real GoTrue with the project's `supabase/config.toml` applied, then run
+# scripts/auth/verify-hibp.ts which signs up with known-pwned passwords and
+# asserts each rejection.
+#
+# Ref:  T-226
+# Spec: §9.1 (Supabase Auth → HIBP check)
+# Date: 2026-06-10
+
+name: auth-hibp
+
+on:
+  # Nightly drift detection — pick an off-peak UTC slot.
+  schedule:
+    - cron: "17 4 * * *"
+
+  # Auth-config PRs — anything that could change the password policy or HIBP
+  # toggle. Keep this list tight; broadening it would waste CI minutes on PRs
+  # that cannot possibly affect HIBP enforcement.
+  pull_request:
+    branches: [main]
+    paths:
+      - "supabase/config.toml"
+      - "supabase/auth/**"
+      - "scripts/auth/**"
+      - ".github/workflows/auth-hibp.yml"
+
+  # Manual trigger for on-demand verification (e.g., after a Supabase
+  # platform incident or before a release).
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  # Don't run multiple instances against the same ref — they'd all spin up
+  # local Supabase stacks competing for ports.
+  group: auth-hibp-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-hibp:
+    name: verify HIBP rejects known-pwned passwords
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # `supabase start` boots Postgres + GoTrue + Studio + Storage etc. in
+      # Docker, applying everything declared in supabase/config.toml — so any
+      # drift in the password policy or HIBP toggle is reflected in the
+      # GoTrue instance the test will probe.
+      - name: Boot local Supabase stack
+        run: supabase start
+
+      # Sanity check: confirm the auth API is reachable before running the
+      # probe — gives a clearer error than the probe's own "could not reach"
+      # message if Docker/networking is broken.
+      - name: Wait for GoTrue
+        run: |
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:54321/auth/v1/health > /dev/null; then
+              echo "GoTrue is up."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "GoTrue did not become healthy in 60s." >&2
+          exit 1
+
+      - name: Run HIBP integration probe
+        # Probe defaults to http://127.0.0.1:54321 + the local anon key, so
+        # no extra env wiring is needed for this job.
+        run: deno run --allow-net --allow-env scripts/auth/verify-hibp.ts
+
+      - name: Tear down Supabase stack
+        # Always run — release ports/containers even if the probe failed.
+        if: always()
+        run: supabase stop --no-backup

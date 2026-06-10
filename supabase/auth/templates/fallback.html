@@ -1,0 +1,213 @@
+<!--
+  Standalone HTML fallback page (pt-BR).
+  Ref: T-202 — Spec §9.1 "Edge cases tratados".
+  Date: 2026-06-10.
+
+  When GoTrue redirects the browser to a `unibill://...` URL on a desktop
+  device that does NOT have the Android app installed, the OS cannot resolve
+  the custom scheme and shows "no application can open this link". To make
+  this case recoverable, the email templates already include a QR Code +
+  APK link block (see confirmation.html, recovery.html, magic_link.html,
+  invite.html, email_change.html). This file is the HOSTED counterpart of
+  that same recovery flow — a plain static HTML page that:
+
+    1. Reads the original `unibill://...` URL from the query string parameter
+       `link` (URL-encoded by whoever creates the link — e.g. a future Edge
+       Function that wraps `redirect_to` in a hosted fallback).
+    2. Auto-attempts to navigate to that URL after a short delay (in case the
+       app IS installed but the browser did not bounce because of a strict
+       URL parser).
+    3. Falls back to a friendly pt-BR explanation, a QR Code that re-renders
+       the original deep link, and a "Baixar APK" button pointing at the
+       GitHub Releases page.
+
+  This file is NOT served by Supabase — it is committed here so it lives
+  next to the email templates that reference it. The deployment target is
+  GitHub Pages (`unibill.github.io/auth-fallback`) or, post-MVP, the
+  production domain `https://unibill.dev/auth/fallback`. The deploy step is
+  out of scope for T-202; a follow-up task wires it into CI.
+
+  TODO(main loop): wire a step in .github/workflows/deploy-pages.yml that
+  copies this file into the gh-pages branch on every change. Do NOT modify
+  ci.yml from this task.
+-->
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <meta name="supported-color-schemes" content="light dark" />
+  <title>Abra o Unibill no celular</title>
+  <style>
+    /* Inline-only CSS — the page is hosted, not emailed, so we can use a
+       small <style> block. Keep it tiny to stay fast on cold loads. */
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f6f8;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #475569;
+      --accent: #2563eb;
+      --accent-text: #ffffff;
+      --border: #e2e8f0;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #0f172a;
+        --card: #1e293b;
+        --text: #f1f5f9;
+        --muted: #94a3b8;
+        --border: #334155;
+      }
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+                   Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      max-width: 560px;
+      margin: 32px auto;
+      padding: 0 16px;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+    .brand {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 8px 0 16px 0;
+      font-size: 24px;
+      line-height: 1.3;
+    }
+    p {
+      margin: 0 0 16px 0;
+      font-size: 16px;
+      line-height: 1.6;
+      color: var(--muted);
+    }
+    .qr {
+      display: block;
+      margin: 24px auto;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      max-width: 240px;
+      width: 100%;
+      height: auto;
+    }
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--accent-text);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 16px;
+      padding: 14px 28px;
+      border-radius: 8px;
+    }
+    .btn-row {
+      text-align: center;
+      margin: 24px 0;
+    }
+    .link {
+      word-break: break-all;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+      font-size: 13px;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 12px;
+      border-radius: 6px;
+      display: block;
+    }
+    footer {
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+    footer a { color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="card">
+      <div class="brand">Unibill</div>
+      <h1>Abra este link no seu celular</h1>
+      <p>
+        Esse link so funciona no celular com o app Unibill instalado.
+        Estamos tentando abrir o app automaticamente — se nada acontecer,
+        siga as instrucoes abaixo.
+      </p>
+
+      <p><strong>1.</strong> Aponte a camera do seu celular pra este QR Code:</p>
+      <img id="qr" class="qr" alt="QR Code pra abrir o link no app Unibill"
+           width="240" height="240"
+           src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data=" />
+
+      <p><strong>2.</strong> Ainda nao tem o app? Baixe o APK mais recente:</p>
+      <div class="btn-row">
+        <a class="btn"
+           href="https://github.com/unibill/unibill-mobile/releases/latest"
+           rel="noopener noreferrer">
+          Baixar APK
+        </a>
+      </div>
+
+      <p><strong>3.</strong> Se preferir, copie este link e cole no app depois de instalado:</p>
+      <code id="link" class="link">unibill://</code>
+    </div>
+    <footer>
+      Unibill — projeto open source (Apache 2.0) ·
+      <a href="https://github.com/unibill" rel="noopener noreferrer">github.com/unibill</a>
+    </footer>
+  </main>
+
+  <script>
+    // Read `?link=<url-encoded-unibill-url>` from the query string. We
+    // accept BOTH `link` (canonical) and `redirect` (Supabase's own param
+    // name) to be robust to either origin. Hardened against XSS: we ONLY
+    // use the value if it starts with `unibill://` — otherwise we leave the
+    // page in its inert state with the bare `unibill://` placeholder.
+    (function () {
+      try {
+        var params = new URLSearchParams(window.location.search);
+        var raw = params.get('link') || params.get('redirect') || '';
+        // Whitelist scheme to block javascript:, data:, https://evil/...
+        if (!/^unibill:\/\//i.test(raw)) {
+          return;
+        }
+        // Render into the visible code block.
+        var codeEl = document.getElementById('link');
+        if (codeEl) { codeEl.textContent = raw; }
+        // Re-encode into the QR Code generator URL.
+        var qrEl = document.getElementById('qr');
+        if (qrEl) {
+          qrEl.src = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=8&data='
+                     + encodeURIComponent(raw);
+        }
+        // Best-effort: try to bounce to the deep link after a short delay,
+        // so a desktop user who DOES have the app installed still gets in.
+        // The OS will silently no-op on machines without a registered
+        // handler, which is exactly what we want.
+        setTimeout(function () { window.location.href = raw; }, 400);
+      } catch (_e) {
+        // Intentionally swallow — the page remains usable without JS.
+      }
+    })();
+  </script>
+</body>
+</html>
