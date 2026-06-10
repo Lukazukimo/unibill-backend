@@ -1,43 +1,36 @@
 /**
- * rate_limit.ts — token-bucket rate limiter backed by `rate_limit_buckets`.
+ * rate_limit.ts — snake_case alias kept for back-compat with T-125 bootstrap.
  *
- * Ref: T-125, spec §4.2 / §4.2.1
+ * Ref:  T-230 (replaces T-125 stub), spec §4.2.1
  * Date: 2026-06-10
  *
- * Increments a counter scoped to `(resource_type, resource_key, window)`
- * and throws `RateLimitError` once the bucket exceeds `limit`. Windows are
- * coarse buckets ('1minute' | '1hour' | '1day') keyed by truncated timestamp
- * — the table holds the current count and a TTL row per window.
+ * The spec canonicalises the helper name as `withRateLimit` in `rateLimit.ts`
+ * (camelCase, §4.2.1). The original bootstrap (T-125) landed the file under
+ * the snake_case path because that was the working name at the time. To avoid
+ * breaking any caller that pinned this path, we re-export the real
+ * implementation here and additionally expose the legacy `void`-returning
+ * shape for ergonomic upgrades.
  *
- * STUB: signatures only — full implementation deferred.
+ * NEW CALLERS: import from `./rateLimit.ts` directly.
  */
+
+export {
+  floorToRateWindow,
+  peekRateLimit,
+  type RateLimitStatus,
+  type RateLimitWindow,
+  type WithRateLimitDeps,
+  withRateLimit,
+} from './rateLimit.ts';
+
+export { RateLimitError } from './errors.ts';
 
 import { RateLimitError } from './errors.ts';
 
-export type RateLimitWindow = '1minute' | '1hour' | '1day';
-
 /**
- * @param resource_type Logical resource category ('ai_provider', 'gmail_api', ...).
- * @param resource_key  Specific instance ('openai:gpt-4o-mini', 'user:<id>').
- * @param limit         Max events permitted in the window.
- * @param window        Window granularity.
- *
- * @throws {RateLimitError} when the bucket would exceed `limit`.
+ * Convenience helper to construct a RateLimitError (kept from the T-125 stub
+ * so any test that imported it does not break).
  */
-export function withRateLimit(
-  resource_type: string,
-  resource_key: string,
-  limit: number,
-  _window: RateLimitWindow,
-): Promise<void> {
-  // STUB: never throws yet. Real impl will UPSERT + check returned count.
-  void resource_type;
-  void resource_key;
-  void limit;
-  return Promise.resolve();
-}
-
-/** Convenience helper to construct a RateLimitError (used by callers in tests). */
 export function rateLimitErrorFor(
   resource_type: string,
   resource_key: string,
