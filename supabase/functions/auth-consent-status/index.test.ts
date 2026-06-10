@@ -28,6 +28,7 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
+import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   computePurposeStatus,
   type ConsentPurpose,
@@ -303,7 +304,7 @@ Deno.test('no active consents + published versions → needs_reconsent=true + ev
 
   // Event emitted with both stale purposes.
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   assertEquals(emittedEvent.type, 'consent.required');
   const payload = emittedEvent.payload as {
     version: number;
@@ -383,7 +384,7 @@ Deno.test('terms matches, privacy missing → needs_reconsent=true with privacy-
   assertEquals(body.purposes.privacy.needs_reconsent, true);
 
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   const payload = emittedEvent.payload as { data: { stale_purposes: string[] } };
   assertEquals(payload.data.stale_purposes, ['privacy']);
 });

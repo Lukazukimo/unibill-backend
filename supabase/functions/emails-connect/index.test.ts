@@ -24,6 +24,7 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
+import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   type ConnectEmailResponse,
   type HandlerDeps,
@@ -561,7 +562,7 @@ Deno.test('handler happy path: 200 with bindings + vault + insert', async () => 
 
   // domain_event emitted
   assert(emittedEvent !== null);
-  const event = emittedEvent as NonNullable<typeof emittedEvent>;
+  const event = nonNull(emittedEvent);
   assertEquals(event.type, 'email.connected');
   assertEquals(event.aggregate_id, body.connected_email_id);
 });

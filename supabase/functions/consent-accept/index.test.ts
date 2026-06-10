@@ -27,6 +27,7 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
+import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   type AcceptConsentResponse,
   CONSENT_PURPOSES,
@@ -469,7 +470,7 @@ Deno.test('happy path inserts active row, captures ip + user-agent, emits event'
 
   // Event emitted with payload shape.
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   assertEquals(emittedEvent.type, 'consent.accepted');
   const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
@@ -546,7 +547,7 @@ Deno.test('revoke_existing=true supersedes prior active and inserts new row', as
 
   // Event payload flags supersession.
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   const payload = emittedEvent.payload as { data: { superseded_previous: boolean } };
   assertEquals(payload.data.superseded_previous, true);
 });

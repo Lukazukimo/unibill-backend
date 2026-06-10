@@ -36,6 +36,7 @@ import {
   validateRotateBody,
 } from './index.ts';
 import type { ImapValidator } from '../emails-connect/index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests
@@ -466,7 +467,7 @@ Deno.test('handler happy path: 200 + vault swap + metadata bump + event', async 
 
   // domain_event emitted
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   assertEquals(emittedEvent.type, 'email.password_rotated');
   assertEquals(emittedEvent.aggregate_id, id);
   const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };

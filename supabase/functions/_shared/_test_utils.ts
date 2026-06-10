@@ -25,3 +25,25 @@ export function assertIsUuid(value: unknown): void {
     throw new Error(`expected UUID, got: ${String(value)}`);
   }
 }
+
+/**
+ * Forcibly narrow `T | null | undefined` to `T` for test assertions.
+ *
+ * Use after `let captured: T | null = null` is mutated inside a closure
+ * (emitEvent/fetchFn/etc), where TS's control-flow analysis keeps the
+ * declared union and `assert(captured !== null)` cannot narrow because the
+ * closure mutation is opaque to TS. A plain `as NonNullable<typeof v>` cast
+ * also fails — at the cast site TS uses the narrowed-to-null type and
+ * `NonNullable<null>` collapses to `never`.
+ *
+ * The function signature `(v: T | null | undefined) => T` forces TS to drop
+ * the null/undefined branches regardless of narrowing state.
+ *
+ * Throws at runtime if the value is null/undefined.
+ */
+export function nonNull<T>(v: T | null | undefined, msg = 'expected non-null'): T {
+  if (v === null || v === undefined) {
+    throw new Error(msg);
+  }
+  return v;
+}

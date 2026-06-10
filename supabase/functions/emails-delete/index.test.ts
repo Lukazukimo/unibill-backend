@@ -31,6 +31,7 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
+import { nonNull } from '../_shared/_test_utils.ts';
   buildHandler,
   extractConnectedEmailId,
   type DeleteEmailResponse,
@@ -471,7 +472,7 @@ Deno.test('handler happy path as OWNER: 200 + cascade soft-delete + vault hard-d
 
   // Event: email.revoked with correct payload
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   assertEquals(emittedEvent.type, 'email.revoked');
   assertEquals(emittedEvent.aggregate_id, id);
   const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
@@ -508,7 +509,7 @@ Deno.test('handler happy path as SYSTEM ADMIN (non-owner): 200 + payload by_syst
   assertEquals(state.rpcCalls.filter((r) => r.fn === 'delete_vault_secret').length, 1);
   // Event flags sys admin actor
   assert(emitted !== null);
-  const emittedEvent = emitted as NonNullable<typeof emitted>;
+  const emittedEvent = nonNull(emitted);
   const payload = emittedEvent.payload as { data: { by_system_admin: boolean } };
   assertEquals(payload.data.by_system_admin, true);
 });

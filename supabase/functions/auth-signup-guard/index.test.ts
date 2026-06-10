@@ -22,6 +22,7 @@ import {
   verifyCaptcha,
 } from '../_shared/captcha.ts';
 import {
+import { nonNull } from '../_shared/_test_utils.ts';
   countAndIncrementIp,
   IP_RATE_RESOURCE_SIGNUP,
   IP_RATE_SIGNUP_LIMIT,
@@ -148,7 +149,7 @@ Deno.test('verifyCaptcha returns ok on hCaptcha success', async () => {
   assert(result.ok);
   if (result.ok) assertEquals(result.bypassed, false);
   assert(calledWith, 'siteverify must be called');
-  const called = calledWith as NonNullable<typeof calledWith>;
+  const called = nonNull(calledWith);
   assertEquals(called.url, 'https://api.hcaptcha.com/siteverify');
   assert(called.body.includes('secret=shh-secret'));
   assert(called.body.includes('response=client-token'));
