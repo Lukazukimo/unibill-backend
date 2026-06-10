@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📋 MVP Implementation Plan (182 tasks T-XYZ)
+    url: https://github.com/Lukazukimo/unibill-backend/blob/main/docs/superpowers/plans/2026-06-09-unibill-mvp-implementation-plan.md
+    about: Antes de abrir issue, confirme se sua intenção não está coberta por uma task T-XYZ já existente no plano
+  - name: 📐 MVP Design Spec
+    url: https://github.com/Lukazukimo/unibill-backend/blob/main/docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
+    about: Especificação completa do MVP (arquitetura, RLS, fluxos, LGPD, ops)
+  - name: 📱 Mobile issues
+    url: https://github.com/Lukazukimo/unibill-mobile/issues
+    about: Issues de Flutter/mobile vivem no repo unibill-mobile

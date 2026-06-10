@@ -1,0 +1,63 @@
+name: ✨ Feature request
+description: Sugerir nova feature OU melhoria fora do plano MVP
+title: "[feat] "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Antes de abrir, confirme:
+        - **Não é uma task do plano MVP** (issues `T-XYZ` já existem com escopo definido)
+        - O caso de uso é claro e não duplicado
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema isso resolve?
+      placeholder: Usuário não consegue ver histórico de tentativas de extração que falharam
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposta de solução
+      placeholder: Adicionar página /admin/extraction-failures que lista ai_calls com status=failed
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      placeholder: Filtrar a tela de needs_review existente para incluir failures (mais simples mas menos foco)
+    validations:
+      required: false
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Que phase / area se encaixa?
+      options:
+        - P0-P1 Foundation
+        - P2-P3 Auth & Connected Emails
+        - P4 Ingestion Pipeline
+        - P5 Extraction Pipeline
+        - P6-P8 Mobile App
+        - P7-P11 Ops / LGPD / CI
+        - Post-MVP (Phase 2)
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria (rascunho)
+      description: Lista do que precisa estar pronto pra considerar feito
+      placeholder: |
+        - [ ] Endpoint X retorna Y
+        - [ ] Test pgTAP cobre Z
+        - [ ] Doc atualizada em ...
+    validations:
+      required: false

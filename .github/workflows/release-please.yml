@@ -1,0 +1,25 @@
+name: release-please
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+      # Future: when MVP stabilizes and we publish releases, add steps here that
+      # only run when ${{ steps.release.outputs.release_created }} == 'true':
+      #   - Build artifacts
+      #   - Upload to GitHub Release
+      #   - Tag deploy to Supabase prod
