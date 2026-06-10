@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint (deno fmt + lint)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check formatting
+        run: deno fmt --check supabase/functions
+
+      - name: Lint
+        run: deno lint supabase/functions
+
+  migration-lint:
+    name: migration-lint (filename convention)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run migration filename lint
+        run: bash scripts/lint_migrations.sh
+
+  test-db:
+    name: test-db (pgTAP)
+    runs-on: ubuntu-latest
+    # Postgres service container — pgTAP runner wired in by later tasks (T-105+).
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # TODO(T-105+): apply migrations + run pgTAP suite.
+      # Skeleton placeholder — kept as a named job so branch protection picks it up early.
+      - name: Placeholder (apply migrations + pgTAP)
+        run: |
+          echo "test-db skeleton: actual pgTAP runner is wired in later tasks (T-105+)."
+          echo "Service postgres:15 is up at ${PGHOST}:${PGPORT}."
+
+  test-deno:
+    name: test-deno (Edge Function tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      # TODO(T-125+): real tests land alongside _shared/ scaffolding.
+      - name: Run Deno tests (skeleton)
+        run: |
+          mkdir -p coverage
+          if [ -d supabase/functions ] && find supabase/functions -name '*.test.ts' | grep -q .; then
+            deno test --allow-all --coverage=coverage
+          else
+            echo "test-deno skeleton: no *.test.ts files yet (added in T-125+)."
+          fi
