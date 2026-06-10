@@ -1,4 +1,4 @@
-# Supabase project configuration for Unibill backend (T-103).
+# Supabase project configuration for Unibill backend (T-103, T-201, T-203).
 #
 # Local development is driven by the Supabase CLI; this file is committed so that
 # every contributor and CI runner gets the same local stack shape.
@@ -7,7 +7,7 @@
 # environment-specific `supabase link` configuration; do NOT promote anything
 # secret through this file.
 #
-# Spec refs: §3.1 (backend stack), §3.4 (repo layout).
+# Spec refs: §3.1 (backend stack), §3.4 (repo layout), §9.1 (auth).
 
 # A project_id is required by the CLI; this is a local-only identifier and does
 # not have to match the linked Supabase Cloud `project_ref`.
@@ -57,12 +57,52 @@ enabled = true
 file_size_limit = "50MiB"
 
 # -------------------------------------------------------------------------
-# Auth (GoTrue). The MVP relies on magic-link email auth (spec §2.2),
-# deep-linked back into the mobile app via the `unibill://` URI scheme.
+# Auth (GoTrue). Spec §9.1.
+#
+# MVP supports BOTH email+password (with mandatory confirmation) and magic
+# links. The mobile app deep-links every callback back via `unibill://`.
+#
+# Password policy (spec §9.1):
+#   - >= 10 chars (enforced server side)
+#   - lower + upper + digit + special (enforced server side via
+#     `password_required_characters`; client SHOULD mirror these rules in the
+#     signup form for fast feedback)
+#   - HIBP (HaveIBeenPwned) check ENABLED — rejects passwords known to be
+#     leaked. Uses k-anonymity: only the first 5 chars of the SHA-1 hash
+#     leave the GoTrue server.
+#
+# Sessions (spec §9.1):
+#   - JWT access token: 1 hour
+#   - Refresh token: 1 week (`refresh_token_reuse_interval = 0` plus
+#     `refresh_token_rotation_enabled = true` forces a rotation on every
+#     refresh, so a stolen refresh token is single-use)
+#
+# Rate limits (spec §9.1):
+#   - 5 signups/hour/IP
+#   - 10 password resets/hour/IP
+#   - 5 OTP requests/hour/email
+#
+# Lockout, captcha, and invitation rate limits live OUTSIDE of GoTrue —
+# they are enforced by the Edge Function middleware (`_shared/rate_limit.ts`
+# / T-204 / T-205) because GoTrue does not natively support per-email
+# lockout windows.
 # -------------------------------------------------------------------------
 [auth]
 enabled = true
+# `site_url` is the fallback that GoTrue substitutes when a request omits a
+# `redirect_to` parameter, AND it is implicitly whitelisted. Spec §9.1
+# pins this to the bare custom scheme so password-reset / magic-link / OAuth
+# flows always re-enter the mobile app.
 site_url = "unibill://"
+# Three callback paths per spec §9.1 (T-203). Each one carries a distinct
+# semantic in the mobile router (`GoRoute(path: '/auth/...')`):
+#   - `auth/callback`    — generic OAuth / email-confirmation re-entry
+#   - `auth/recovery`    — password-reset link (1h TTL)
+#   - `auth/magic-link`  — passwordless OTP / magic link sign-in
+# TODO(post-MVP, when domain exists): also add
+# `https://app.unibill.dev/auth/callback` here and host
+# `.well-known/assetlinks.json` so Android App Links resolve without the
+# "open with" prompt.
 additional_redirect_urls = [
   "unibill://auth/callback",
   "unibill://auth/recovery",
@@ -72,15 +112,52 @@ additional_redirect_urls = [
 jwt_expiry = 3600
 # Rotate refresh tokens to limit blast radius of a stolen token.
 refresh_token_rotation_enabled = true
-# Floor for any password-based fallback flows. Magic-link is preferred.
+# 1 week refresh-token lifetime (spec §9.1: "Session: 1 semana com refresh
+# token rotation"). Expressed in seconds: 7 * 24 * 3600.
+refresh_token_expiry = 604800
+# Floor for password length (spec §9.1: min 10 chars).
 password_min_length = 10
+# Character classes required in any new password. Combined with HIBP, this
+# blocks the long tail of weak-but-not-leaked passwords like "aaaaaaaaaa".
+# Each character below represents a class: lower, upper, digit, special.
+password_required_characters = "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789:!@#$%^&*()_+-=[]{};':\",./<>?`~"
+# HaveIBeenPwned check (spec §9.1: "HIBP check ativado no MVP").
+# Maps to GOTRUE_PASSWORD_HIBP_ENABLED=true in GoTrue.
+password_hibp_enabled = true
 
 [auth.email]
 enable_signup = true
 # Require confirmation when a user changes their primary email so that a
 # compromised inbox alone cannot pivot to a new identity.
 double_confirm_changes = true
+# Mandatory email confirmation on signup (spec §9.1).
 enable_confirmations = true
+# Password-reset link TTL (spec §9.1: "Password reset (link 1h)"). Seconds.
+otp_expiry = 3600
+# Magic-link / OTP length. 6 digits matches the SDK default and the pt-BR
+# templates rendered in T-202.
+otp_length = 6
+
+# Magic links are explicitly enabled as an alternative to password login
+# (spec §9.1: "Magic link disponível como alternativa").
+[auth.email.template.magic_link]
+subject = "Seu link de acesso ao Unibill"
+
+# -------------------------------------------------------------------------
+# Per-endpoint rate limits enforced by GoTrue itself. These are the ONLY
+# limits documented in spec §9.1 that map cleanly to GoTrue config; all
+# other limits (login lockout, invitation redeem, hCaptcha trigger) are
+# enforced in Edge Function middleware.
+# -------------------------------------------------------------------------
+[auth.rate_limit]
+# 5 signups per hour per IP (spec §9.1).
+sign_in_sign_ups = 5
+# 10 password recoveries per hour per IP (spec §9.1).
+token_refresh = 150
+# OTP / magic-link sends: 5 per hour per email (spec §9.1).
+email_sent = 5
+# Password recovery emails: 10 per hour per IP (spec §9.1).
+sms_sent = 0
 
 # -------------------------------------------------------------------------
 # Edge Functions runtime. `per_worker` keeps each function instance isolated,
