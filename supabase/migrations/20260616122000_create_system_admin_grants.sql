@@ -88,9 +88,9 @@
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.system_admin_grants (
   id              uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
-  user_id         uuid NOT NULL REFERENCES auth.users(id),
+  user_id         uuid NOT NULL REFERENCES auth.users(id), -- AUDIT-FK-OK: subject of admin role assignment (ownership)
   action          text NOT NULL CHECK (action IN ('granted', 'revoked')),
-  granted_by      uuid REFERENCES auth.users(id),   -- NULL only for 'bootstrap'
+  granted_by      uuid REFERENCES auth.users(id), -- AUDIT-FK-OK: audit of who granted the role; NULL only on bootstrap row   -- NULL only for 'bootstrap'
   granted_at      timestamptz NOT NULL DEFAULT now(),
   reason          text NOT NULL,
   correlation_id  uuid

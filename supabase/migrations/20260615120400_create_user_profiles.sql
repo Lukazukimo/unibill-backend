@@ -62,7 +62,7 @@
 -- 1. user_profiles — display-friendly user data
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.user_profiles (
-  user_id      uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  user_id      uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE, -- AUDIT-FK-OK: 1:1 ownership (user_profile is per-user, cascade on user delete)
   display_name text NOT NULL,
   avatar_url   text,
   locale       text NOT NULL DEFAULT 'pt-BR'

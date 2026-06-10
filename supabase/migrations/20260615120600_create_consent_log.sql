@@ -108,7 +108,7 @@ COMMENT ON TYPE public.consent_purpose IS
 -- ============================================================================
 CREATE TABLE IF NOT EXISTS public.consent_log (
   id              uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
-  user_id         uuid NOT NULL REFERENCES auth.users(id),
+  user_id         uuid NOT NULL REFERENCES auth.users(id), -- AUDIT-FK-OK: ownership (LGPD consent record belongs to the consenting user)
   purpose         public.consent_purpose NOT NULL,
   version         text NOT NULL,
   legal_basis     text NOT NULL,
