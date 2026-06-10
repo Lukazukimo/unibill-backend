@@ -32,6 +32,7 @@ import {
   type RevokeConsentResponse,
   validateRevokeBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -281,7 +282,9 @@ function makeRequest(
   return new Request('https://x.test/consent/revoke', {
     method: opts.method ?? 'POST',
     headers: { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || (opts.method && ['GET', 'HEAD'].includes(opts.method.toUpperCase()))
+      ? undefined
+      : JSON.stringify(body),
   });
 }
 
@@ -392,9 +395,10 @@ Deno.test('happy path (terms): row marked revoked + reason captured + event emit
 
   // Event emitted with payload shape.
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'consent.revoked');
-  assertEquals(emitted!.aggregate_id, active.id);
-  const payload = emitted!.payload as { version: number; data: Record<string, unknown> };
+  const emittedEvent = nonNull<{ type: string; payload: unknown; aggregate_id: string }>(emitted);
+  assertEquals(emittedEvent.type, 'consent.revoked');
+  assertEquals(emittedEvent.aggregate_id, active.id);
+  const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.purpose, 'terms');
   assertEquals(payload.data.consent_version, 'terms-v1-2026-01');
@@ -439,7 +443,8 @@ Deno.test('telemetry revoke purges client_telemetry and reports the count', asyn
 
   // Event payload carries the purge count.
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { telemetry_purged: number } };
+  const emittedEvent = nonNull<{ payload: unknown }>(emitted);
+  const payload = emittedEvent.payload as { data: { telemetry_purged: number } };
   assertEquals(payload.data.telemetry_purged, 3);
 });
 

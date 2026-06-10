@@ -31,6 +31,7 @@ import {
   normalizeAppPassword,
   validateConnectBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests (no client, no IMAP)
@@ -561,8 +562,9 @@ Deno.test('handler happy path: 200 with bindings + vault + insert', async () => 
 
   // domain_event emitted
   assert(emittedEvent !== null);
-  assertEquals(emittedEvent!.type, 'email.connected');
-  assertEquals(emittedEvent!.aggregate_id, body.connected_email_id);
+  const event = nonNull<{ type: string; aggregate_id: string }>(emittedEvent);
+  assertEquals(event.type, 'email.connected');
+  assertEquals(event.aggregate_id, body.connected_email_id);
 });
 
 Deno.test('handler maps 23505 from connected_emails insert race to 409', async () => {

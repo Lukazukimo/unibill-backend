@@ -521,7 +521,9 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
 
     if (insertErr) {
       // Compensate: drop the freshly-created vault secret (we orphaned it).
-      await client.rpc('delete_vault_secret', { secret_id: secretId }).catch((e) => {
+      try {
+        await client.rpc('delete_vault_secret', { secret_id: secretId });
+      } catch (e) {
         console.error(
           JSON.stringify({
             level: 'warn',
@@ -531,7 +533,7 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
             error: redactSecrets(e instanceof Error ? e.message : String(e)),
           }),
         );
-      });
+      }
       if (insertErr.code === PG_UNIQUE_VIOLATION) {
         return jsonResponse(409, {
           error: 'email_already_owned',
@@ -565,13 +567,15 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
     if (bindErr) {
       // Compensate: hard-delete the connected_emails row + drop vault secret.
       // (We never returned the id to the caller, so this is invisible.)
-      await client
-        .from('connected_emails')
-        .delete()
-        .eq('id', connectedEmailId)
-        .then(() => undefined)
-        .catch(() => undefined);
-      await client.rpc('delete_vault_secret', { secret_id: secretId }).catch(() => undefined);
+      try {
+        await client
+          .from('connected_emails')
+          .delete()
+          .eq('id', connectedEmailId);
+      } catch { /* best-effort compensation */ }
+      try {
+        await client.rpc('delete_vault_secret', { secret_id: secretId });
+      } catch { /* best-effort compensation */ }
       console.error(
         JSON.stringify({
           level: 'error',
