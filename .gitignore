@@ -1,0 +1,61 @@
+# Supabase
+supabase/.branches/
+supabase/.temp/
+supabase/.env
+supabase/.env.local
+**/.supabase/
+
+# Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*-credentials.json
+secrets/
+
+# Deno
+.deno/
+deno.lock
+
+# Node (release-please, scripts)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnp/
+.pnp.js
+
+# Build outputs
+dist/
+build/
+*.tar.gz
+*.dump
+
+# Coverage
+coverage/
+lcov.info
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+ehthumbs.db
+
+# Generated docs
+docs/generated/
+
+# Logs
+*.log
+logs/
+
+# Local DB dumps
+*.sql.bak
+backups/

@@ -1,0 +1,14 @@
+# Code owners — automatic reviewers on PRs
+# Format: <pattern> <owner> [@owner...]
+
+# Default: tudo precisa de review do mantenedor principal
+*       @Lukazukimo
+
+# Workflows CI: dupla atenção
+/.github/workflows/   @Lukazukimo
+
+# Migrations: zero margem pra erro (destrutivas)
+/supabase/migrations/   @Lukazukimo
+
+# Edge Functions: surface API
+/supabase/functions/   @Lukazukimo
