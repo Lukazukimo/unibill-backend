@@ -30,5 +30,9 @@
     "strict": true,
     "lib": ["deno.window", "deno.unstable"]
   },
-  "lock": "deno.lock"
+  "lock": "deno.lock",
+  // Auto-create ./node_modules on demand so transitive npm deps pulled in by
+  // jsr:@supabase/supabase-js (e.g., @supabase/realtime-js) resolve cleanly
+  // under `deno test` / `deno install`. Required since Deno 2.x.
+  "nodeModulesDir": "auto"
 }
