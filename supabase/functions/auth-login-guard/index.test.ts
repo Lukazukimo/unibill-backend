@@ -14,10 +14,10 @@
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
   BLOCK_WINDOW_MINUTES,
-  FAIL_THRESHOLD,
-  FAIL_WINDOW_MINUTES,
   checkLockout,
   clearLockout,
+  FAIL_THRESHOLD,
+  FAIL_WINDOW_MINUTES,
   floorToWindow,
   isWithinWindow,
   lockoutKey,
@@ -46,10 +46,10 @@ class FakeRateLimitTable {
   upsert(row: Row) {
     const idx = this.rows.findIndex(
       (r) =>
-        r.resource_type === row.resource_type
-        && r.resource_key === row.resource_key
-        && r.window_start === row.window_start
-        && r.window_size === row.window_size,
+        r.resource_type === row.resource_type &&
+        r.resource_key === row.resource_key &&
+        r.window_start === row.window_start &&
+        r.window_size === row.window_size,
     );
     if (idx >= 0) this.rows[idx] = row;
     else this.rows.push(row);
@@ -264,8 +264,8 @@ Deno.test('clearLockout removes both fail and block buckets', async () => {
 
   const stillHasLockoutRows = table.rows.some(
     (r) =>
-      r.resource_key === lockoutKey(email, 'fail')
-      || r.resource_key === lockoutKey(email, 'block'),
+      r.resource_key === lockoutKey(email, 'fail') ||
+      r.resource_key === lockoutKey(email, 'block'),
   );
   assert(!stillHasLockoutRows, 'clearLockout must delete both buckets');
 });

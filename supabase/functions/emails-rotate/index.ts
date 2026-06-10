@@ -34,7 +34,8 @@
  *  10. Return { rotated_at: ISO timestamp }.
  *
  * Response shape (200):
- *   { rotated_at: string /* ISO 8601 timestamptz */ /* }
+ *   { rotated_at: string /* ISO 8601 timestamptz */
+/* }
  *
  * Test-injection seams (handler exported as `buildHandler({...})`):
  *   - `validateImap`    — stub in unit tests to avoid real IMAP network I/O
@@ -48,17 +49,14 @@ import { type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
 import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
+import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
 import {
-  emitDomainEvent,
-  type DomainEventInput,
-} from '../_shared/events.ts';
-import {
-  defaultGetCallerUser,
-  defaultValidateImap,
-  normalizeAppPassword,
   type CallerUser,
   type CallerUserResolver,
+  defaultGetCallerUser,
+  defaultValidateImap,
   type ImapValidator,
+  normalizeAppPassword,
 } from '../emails-connect/index.ts';
 
 // ---------------------------------------------------------------------------

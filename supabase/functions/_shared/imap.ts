@@ -118,7 +118,10 @@ export function classifyImapError(err: unknown): ImapValidationResult {
   // (which doesn't expose the message) doesn't accidentally log a raw copy.
   const safe = redactSecrets(raw);
 
-  if (authFailed || code === 'AUTHENTICATIONFAILED' || /authenticationfailed|invalid\s+credentials|auth(entication)?\s+failed/i.test(raw)) {
+  if (
+    authFailed || code === 'AUTHENTICATIONFAILED' ||
+    /authenticationfailed|invalid\s+credentials|auth(entication)?\s+failed/i.test(raw)
+  ) {
     return { kind: 'invalid_credentials' };
   }
   return { kind: 'network_error', message: safe };

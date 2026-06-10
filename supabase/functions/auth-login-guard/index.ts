@@ -37,14 +37,17 @@ type LoginRequest = {
 function isLoginRequest(value: unknown): value is LoginRequest {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  return typeof v.email === 'string' && typeof v.password === 'string'
-    && v.email.length > 0 && v.password.length > 0;
+  return typeof v.email === 'string' && typeof v.password === 'string' &&
+    v.email.length > 0 && v.password.length > 0;
 }
 
 function jsonResponse(status: number, body: unknown, extraHeaders: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json', ...Object.fromEntries(new Headers(extraHeaders)) },
+    headers: {
+      'content-type': 'application/json',
+      ...Object.fromEntries(new Headers(extraHeaders)),
+    },
   });
 }
 
@@ -114,8 +117,8 @@ export const handler = withCorrelation(async (ctx, req) => {
     // Both side-effects are best-effort: the 423 response is the contract.
     try {
       await anonClient.auth.resetPasswordForEmail(email, {
-        redirectTo: Deno.env.get('UNIBILL_UNLOCK_REDIRECT_URL')
-          ?? 'unibill://auth/recovery',
+        redirectTo: Deno.env.get('UNIBILL_UNLOCK_REDIRECT_URL') ??
+          'unibill://auth/recovery',
       });
     } catch (_e) {
       // do not leak provider errors back to caller

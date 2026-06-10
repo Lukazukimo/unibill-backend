@@ -131,7 +131,9 @@ Deno.test('validateImapCredentials: returns invalid_credentials on auth failure'
     { email: 'user@example.com', password: 'wrongwrongwrong1' },
     {
       imapFactory: fakeFactory({
-        onConnect: { throw: Object.assign(new Error('LOGIN failed'), { authenticationFailed: true }) },
+        onConnect: {
+          throw: Object.assign(new Error('LOGIN failed'), { authenticationFailed: true }),
+        },
         logoutCalled,
       }),
     },

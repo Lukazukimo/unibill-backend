@@ -27,8 +27,8 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-  buildHandler,
   type AcceptConsentResponse,
+  buildHandler,
   CONSENT_PURPOSES,
   type ConsentPurpose,
   extractClientIp,
