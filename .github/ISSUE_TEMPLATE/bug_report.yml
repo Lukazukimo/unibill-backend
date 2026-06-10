@@ -1,0 +1,78 @@
+name: 🐛 Bug report
+description: Reportar comportamento inesperado, falha ou regressão
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Obrigado por reportar! Antes de submeter, confira se:
+        - Não existe issue duplicada (busque por palavras-chave)
+        - Não está coberto por uma task `T-XYZ` já aberta no plano
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: O que aconteceu?
+      description: Descrição clara e concisa do bug
+      placeholder: Ao chamar POST /emails/connect com IMAP inválido, retorna 500 ao invés de 400 com mensagem clara
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Como reproduzir
+      description: Passos numerados que levam ao bug
+      placeholder: |
+        1. `supabase db reset`
+        2. Chamar POST /emails/connect com `imap_host: 'invalid.example.com'`
+        3. Observar response
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportamento esperado
+      placeholder: 400 Bad Request com `{ error: "IMAP_HOST_UNREACHABLE", message: "..." }`
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Ambiente
+      description: Versões, OS, etc
+      value: |
+        - Supabase CLI:
+        - Deno:
+        - OS:
+        - Migration revision:
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs relevantes
+      description: Cole logs (Edge Function, Postgres, CI) — **NÃO inclua secrets**
+      render: shell
+    validations:
+      required: false
+
+  - type: dropdown
+    id: phase
+    attributes:
+      label: Phase / area afetada
+      options:
+        - P0-P1 Foundation (schema, RLS, seeds)
+        - P2-P3 Auth & Connected Emails
+        - P4 Ingestion Pipeline
+        - P5 Extraction Pipeline (OCR/AI/regex)
+        - P6-P8 Mobile App
+        - P7-P11 Ops / LGPD / CI
+        - Indefinido
+    validations:
+      required: true
