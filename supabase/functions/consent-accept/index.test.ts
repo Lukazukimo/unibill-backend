@@ -349,7 +349,9 @@ function makeRequest(
   return new Request('https://x.test/consent/accept', {
     method: opts.method ?? 'POST',
     headers: { 'content-type': 'application/json', ...(opts.headers ?? {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || (opts.method && ['GET', 'HEAD'].includes(opts.method.toUpperCase()))
+      ? undefined
+      : JSON.stringify(body),
   });
 }
 

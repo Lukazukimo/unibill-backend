@@ -282,7 +282,9 @@ function makeRequest(
   return new Request('https://x.test/consent/revoke', {
     method: opts.method ?? 'POST',
     headers: { 'content-type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || (opts.method && ['GET', 'HEAD'].includes(opts.method.toUpperCase()))
+      ? undefined
+      : JSON.stringify(body),
   });
 }
 
