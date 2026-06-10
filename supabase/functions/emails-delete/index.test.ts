@@ -32,10 +32,11 @@
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
   buildHandler,
-  extractConnectedEmailId,
   type DeleteEmailResponse,
+  extractConnectedEmailId,
   type HandlerDeps,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests
@@ -265,7 +266,9 @@ function freshState(opts: Partial<FakeState> = {}): FakeState {
   };
 }
 
-function callerStub(user: { id: string; isSystemAdmin: boolean } | null): HandlerDeps['getCallerUser'] {
+function callerStub(
+  user: { id: string; isSystemAdmin: boolean } | null,
+): HandlerDeps['getCallerUser'] {
   return () => Promise.resolve(user);
 }
 
@@ -274,9 +277,7 @@ function makeRequest(opts: {
   method?: string;
 } = {}): Request {
   const id = opts.id === undefined ? '11111111-1111-4111-8111-111111111111' : opts.id;
-  const path = id === null
-    ? 'https://x.test/emails/not-a-uuid'
-    : `https://x.test/emails/${id}`;
+  const path = id === null ? 'https://x.test/emails/not-a-uuid' : `https://x.test/emails/${id}`;
   return new Request(path, {
     method: opts.method ?? 'DELETE',
   });
@@ -457,9 +458,7 @@ Deno.test('handler happy path as OWNER: 200 + cascade soft-delete + vault hard-d
     assertEquals(b.deleted_at, FIXED_NOW.toISOString());
     assertEquals(b.updated_at, FIXED_NOW.toISOString());
   }
-  const unrelated = state.bindings.find((b) =>
-    b.connected_email_id !== id
-  );
+  const unrelated = state.bindings.find((b) => b.connected_email_id !== id);
   assert(unrelated !== undefined);
   assertEquals(unrelated!.deleted_at, null);
 
@@ -471,9 +470,10 @@ Deno.test('handler happy path as OWNER: 200 + cascade soft-delete + vault hard-d
 
   // Event: email.revoked with correct payload
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'email.revoked');
-  assertEquals(emitted!.aggregate_id, id);
-  const payload = emitted!.payload as { version: number; data: Record<string, unknown> };
+  const emittedEvent = nonNull<{ type: string; aggregate_id: string; payload: unknown }>(emitted);
+  assertEquals(emittedEvent.type, 'email.revoked');
+  assertEquals(emittedEvent.aggregate_id, id);
+  const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.vault_secret_id, secretId);
   assertEquals(payload.data.revoked_at, FIXED_NOW.toISOString());
@@ -507,7 +507,8 @@ Deno.test('handler happy path as SYSTEM ADMIN (non-owner): 200 + payload by_syst
   assertEquals(state.rpcCalls.filter((r) => r.fn === 'delete_vault_secret').length, 1);
   // Event flags sys admin actor
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { by_system_admin: boolean } };
+  const emittedEvent = nonNull<{ payload: unknown }>(emitted);
+  const payload = emittedEvent.payload as { data: { by_system_admin: boolean } };
   assertEquals(payload.data.by_system_admin, true);
 });
 

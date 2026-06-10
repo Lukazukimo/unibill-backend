@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.connected_emails (
   id                   uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(),
   email_address        text NOT NULL UNIQUE,
   provider             public.email_provider NOT NULL DEFAULT 'gmail',
-  owner_user_id        uuid NOT NULL REFERENCES auth.users(id),
+  owner_user_id        uuid NOT NULL REFERENCES auth.users(id), -- AUDIT-FK-OK: ownership (Gmail account belongs to the user who connected it)
   app_password_secret  uuid NOT NULL,
   imap_host            text NOT NULL DEFAULT 'imap.gmail.com',
   imap_port            int  NOT NULL DEFAULT 993,

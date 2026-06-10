@@ -27,8 +27,8 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
-  buildHandler,
   type AcceptConsentResponse,
+  buildHandler,
   CONSENT_PURPOSES,
   type ConsentPurpose,
   extractClientIp,
@@ -37,6 +37,7 @@ import {
   LEGAL_BASES,
   validateAcceptBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -348,7 +349,9 @@ function makeRequest(
   return new Request('https://x.test/consent/accept', {
     method: opts.method ?? 'POST',
     headers: { 'content-type': 'application/json', ...(opts.headers ?? {}) },
-    body: body === undefined ? undefined : JSON.stringify(body),
+    body: body === undefined || (opts.method && ['GET', 'HEAD'].includes(opts.method.toUpperCase()))
+      ? undefined
+      : JSON.stringify(body),
   });
 }
 
@@ -469,8 +472,9 @@ Deno.test('happy path inserts active row, captures ip + user-agent, emits event'
 
   // Event emitted with payload shape.
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'consent.accepted');
-  const payload = emitted!.payload as { version: number; data: Record<string, unknown> };
+  const emittedEvent = nonNull<{ type: string; payload: unknown; aggregate_id: string }>(emitted);
+  assertEquals(emittedEvent.type, 'consent.accepted');
+  const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.purpose, 'terms');
   assertEquals(payload.data.legal_basis, 'consent');
@@ -545,7 +549,8 @@ Deno.test('revoke_existing=true supersedes prior active and inserts new row', as
 
   // Event payload flags supersession.
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { superseded_previous: boolean } };
+  const emittedEvent = nonNull<{ payload: unknown }>(emitted);
+  const payload = emittedEvent.payload as { data: { superseded_previous: boolean } };
   assertEquals(payload.data.superseded_previous, true);
 });
 

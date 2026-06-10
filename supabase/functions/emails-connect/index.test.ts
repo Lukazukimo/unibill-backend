@@ -31,6 +31,7 @@ import {
   normalizeAppPassword,
   validateConnectBody,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure-function tests (no client, no IMAP)
@@ -306,9 +307,9 @@ function makeFakeClient(state: FakeState): any {
             b._householdIds = vals;
             // Resolve only when .in() is called (terminal in the handler chain).
             const matches = state.adminMemberships.filter((m) =>
-              m.user_id === b._userId
-              && m.role === b._role
-              && b._householdIds.includes(m.household_id)
+              m.user_id === b._userId &&
+              m.role === b._role &&
+              b._householdIds.includes(m.household_id)
             );
             return Promise.resolve({
               data: matches.map((m) => ({ household_id: m.household_id })),
@@ -561,15 +562,19 @@ Deno.test('handler happy path: 200 with bindings + vault + insert', async () => 
 
   // domain_event emitted
   assert(emittedEvent !== null);
-  assertEquals(emittedEvent!.type, 'email.connected');
-  assertEquals(emittedEvent!.aggregate_id, body.connected_email_id);
+  const event = nonNull<{ type: string; aggregate_id: string }>(emittedEvent);
+  assertEquals(event.type, 'email.connected');
+  assertEquals(event.aggregate_id, body.connected_email_id);
 });
 
 Deno.test('handler maps 23505 from connected_emails insert race to 409', async () => {
   const householdId = '11111111-1111-4111-8111-111111111111';
   const state = freshState({
     adminMemberships: adminsOf('u1', [householdId]),
-    forceInsertError: { code: '23505', message: 'duplicate key violates uq_connected_emails_email_address' },
+    forceInsertError: {
+      code: '23505',
+      message: 'duplicate key violates uq_connected_emails_email_address',
+    },
   });
   const handler = buildHandler({
     validateImap: imapStub({ kind: 'ok' }),

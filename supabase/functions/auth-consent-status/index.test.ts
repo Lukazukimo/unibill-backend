@@ -35,6 +35,7 @@ import {
   extractVersionFromSetting,
   type HandlerDeps,
 } from './index.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Pure helpers
@@ -303,8 +304,9 @@ Deno.test('no active consents + published versions → needs_reconsent=true + ev
 
   // Event emitted with both stale purposes.
   assert(emitted !== null);
-  assertEquals(emitted!.type, 'consent.required');
-  const payload = emitted!.payload as {
+  const emittedEvent = nonNull<{ type: string; payload: unknown }>(emitted);
+  assertEquals(emittedEvent.type, 'consent.required');
+  const payload = emittedEvent.payload as {
     version: number;
     data: { stale_purposes: string[] };
   };
@@ -382,7 +384,8 @@ Deno.test('terms matches, privacy missing → needs_reconsent=true with privacy-
   assertEquals(body.purposes.privacy.needs_reconsent, true);
 
   assert(emitted !== null);
-  const payload = emitted!.payload as { data: { stale_purposes: string[] } };
+  const emittedEvent = nonNull<{ payload: unknown }>(emitted);
+  const payload = emittedEvent.payload as { data: { stale_purposes: string[] } };
   assertEquals(payload.data.stale_purposes, ['privacy']);
 });
 
@@ -516,9 +519,7 @@ Deno.test('full re-consent loop: bump terms_version → status flips → accept 
 
   // 2) Ops bumps the published terms_version to v2.0.
   state.settings = state.settings.map((s) =>
-    s.key === 'legal.terms_version'
-      ? { ...s, value: { v: 'v2.0-2026-09' } }
-      : s
+    s.key === 'legal.terms_version' ? { ...s, value: { v: 'v2.0-2026-09' } } : s
   );
 
   res = await handler(makeRequest());
@@ -531,9 +532,7 @@ Deno.test('full re-consent loop: bump terms_version → status flips → accept 
   // 3) User re-accepts via consent-accept (we simulate the DB write here):
   //    the old terms row is revoked, a new active terms row at v2.0 inserted.
   state.consents = state.consents.map((c) =>
-    c.purpose === 'terms'
-      ? { ...c, revoked_at: '2026-09-02T10:00:00.000Z' }
-      : c
+    c.purpose === 'terms' ? { ...c, revoked_at: '2026-09-02T10:00:00.000Z' } : c
   );
   state.consents.push({
     user_id: 'u1',

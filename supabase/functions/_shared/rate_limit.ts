@@ -19,8 +19,8 @@ export {
   peekRateLimit,
   type RateLimitStatus,
   type RateLimitWindow,
-  type WithRateLimitDeps,
   withRateLimit,
+  type WithRateLimitDeps,
 } from './rateLimit.ts';
 
 export { RateLimitError } from './errors.ts';

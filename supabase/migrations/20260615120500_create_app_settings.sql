@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings (
   description      text,
   requires_restart boolean NOT NULL DEFAULT false,
   updated_at       timestamptz NOT NULL DEFAULT now(),
-  updated_by       uuid REFERENCES auth.users(id)
+  updated_by       uuid REFERENCES auth.users(id) -- AUDIT-FK-OK: audit trail of admin who last set this row; FK is intentional per §5.10 exception
 );
 
 COMMENT ON TABLE public.app_settings IS
@@ -242,7 +242,7 @@ CREATE TABLE IF NOT EXISTS public.app_settings_history (
   old_value  jsonb,
   new_value  jsonb NOT NULL,
   changed_at timestamptz NOT NULL DEFAULT now(),
-  changed_by uuid REFERENCES auth.users(id)
+  changed_by uuid REFERENCES auth.users(id) -- AUDIT-FK-OK: audit history of changes; nullable, FK intentional per §5.10 exception
 );
 
 COMMENT ON TABLE public.app_settings_history IS

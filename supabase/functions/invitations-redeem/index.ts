@@ -80,10 +80,7 @@ import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient, floorToWindow } from '../_shared/lockout.ts';
 import { extractClientIp } from '../_shared/captcha.ts';
 import { redactSecrets } from '../_shared/redact.ts';
-import {
-  emitDomainEvent,
-  type DomainEventInput,
-} from '../_shared/events.ts';
+import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -346,8 +343,15 @@ async function recordFailure(args: {
   now: Date;
 }): Promise<void> {
   const {
-    client, emitEvent, correlationId, caller, code, reason,
-    invitationId, householdId, now,
+    client,
+    emitEvent,
+    correlationId,
+    caller,
+    code,
+    reason,
+    invitationId,
+    householdId,
+    now,
   } = args;
 
   // 1) Increment lockout bucket (idempotent ON CONFLICT upsert)
@@ -522,8 +526,13 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // Lockout permanente — mas registramos esta tentativa também (incrementa
       // o counter, emite domain_event) pra sys admin ver continued brute force.
       await recordFailure({
-        client, emitEvent, correlationId: ctx.correlation_id, caller, code,
-        reason: 'code_locked', now,
+        client,
+        emitEvent,
+        correlationId: ctx.correlation_id,
+        caller,
+        code,
+        reason: 'code_locked',
+        now,
       });
       // Anti-enumeration: tratamos como not-found (não revelamos que o code
       // existe e foi locked).
@@ -563,8 +572,13 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
     // Not found OR already used (used_at IS NULL filter caught used) → 404
     if (!invite) {
       await recordFailure({
-        client, emitEvent, correlationId: ctx.correlation_id, caller, code,
-        reason: 'invite_not_found', now,
+        client,
+        emitEvent,
+        correlationId: ctx.correlation_id,
+        caller,
+        code,
+        reason: 'invite_not_found',
+        now,
       });
       return jsonResponse(404, { error: 'invite_not_found' });
     }
@@ -573,9 +587,15 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
     const expiresAt = new Date(invite.expires_at);
     if (expiresAt.getTime() <= now.getTime()) {
       await recordFailure({
-        client, emitEvent, correlationId: ctx.correlation_id, caller, code,
-        reason: 'invite_expired', invitationId: invite.id,
-        householdId: invite.household_id, now,
+        client,
+        emitEvent,
+        correlationId: ctx.correlation_id,
+        caller,
+        code,
+        reason: 'invite_expired',
+        invitationId: invite.id,
+        householdId: invite.household_id,
+        now,
       });
       // Spec §E retorna 404 pra "código inválido/expirado" (mesma resposta;
       // não vazamos a distinção entre não-existe / expirou).
@@ -588,9 +608,15 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // invitation.invited_email já é lowercase (trigger T-227 normaliza)
       if (callerEmailLc !== invite.invited_email) {
         await recordFailure({
-          client, emitEvent, correlationId: ctx.correlation_id, caller, code,
-          reason: 'email_mismatch', invitationId: invite.id,
-          householdId: invite.household_id, now,
+          client,
+          emitEvent,
+          correlationId: ctx.correlation_id,
+          caller,
+          code,
+          reason: 'email_mismatch',
+          invitationId: invite.id,
+          householdId: invite.household_id,
+          now,
         });
         return jsonResponse(403, {
           error: 'email_mismatch',
@@ -655,13 +681,13 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // Compensação best-effort: remove o member que acabamos de inserir
       // (a menos que ele já existisse — nesse caso é "ownership" de outra request).
       if (!memberAlreadyExists) {
-        await client
-          .from('members')
-          .delete()
-          .eq('household_id', invite.household_id)
-          .eq('user_id', caller.id)
-          .then(() => undefined)
-          .catch(() => undefined);
+        try {
+          await client
+            .from('members')
+            .delete()
+            .eq('household_id', invite.household_id)
+            .eq('user_id', caller.id);
+        } catch { /* best-effort compensation */ }
       }
       return jsonResponse(500, { error: 'internal_error', code: 'invitation_update_failed' });
     }
@@ -670,18 +696,24 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       // Race condition: outra request consumiu o convite entre lookup e update.
       // Compensa o member insert (se foi novo).
       if (!memberAlreadyExists) {
-        await client
-          .from('members')
-          .delete()
-          .eq('household_id', invite.household_id)
-          .eq('user_id', caller.id)
-          .then(() => undefined)
-          .catch(() => undefined);
+        try {
+          await client
+            .from('members')
+            .delete()
+            .eq('household_id', invite.household_id)
+            .eq('user_id', caller.id);
+        } catch { /* best-effort compensation */ }
       }
       await recordFailure({
-        client, emitEvent, correlationId: ctx.correlation_id, caller, code,
-        reason: 'invite_used', invitationId: invite.id,
-        householdId: invite.household_id, now,
+        client,
+        emitEvent,
+        correlationId: ctx.correlation_id,
+        caller,
+        code,
+        reason: 'invite_used',
+        invitationId: invite.id,
+        householdId: invite.household_id,
+        now,
       });
       return jsonResponse(404, { error: 'invite_not_found' });
     }

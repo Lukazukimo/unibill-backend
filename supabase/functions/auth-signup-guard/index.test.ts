@@ -29,6 +29,7 @@ import {
   ipRateKey,
   peekIpRate,
 } from '../_shared/ip_rate.ts';
+import { nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Constants (lock the spec)
@@ -148,12 +149,11 @@ Deno.test('verifyCaptcha returns ok on hCaptcha success', async () => {
   assert(result.ok);
   if (result.ok) assertEquals(result.bypassed, false);
   assert(calledWith, 'siteverify must be called');
-  if (calledWith) {
-    assertEquals(calledWith.url, 'https://api.hcaptcha.com/siteverify');
-    assert(calledWith.body.includes('secret=shh-secret'));
-    assert(calledWith.body.includes('response=client-token'));
-    assert(calledWith.body.includes('remoteip=1.2.3.4'));
-  }
+  const called = nonNull<{ url: string; body: string }>(calledWith);
+  assertEquals(called.url, 'https://api.hcaptcha.com/siteverify');
+  assert(called.body.includes('secret=shh-secret'));
+  assert(called.body.includes('response=client-token'));
+  assert(called.body.includes('remoteip=1.2.3.4'));
 });
 
 Deno.test('verifyCaptcha returns rejected on hCaptcha failure with codes', async () => {
@@ -221,10 +221,10 @@ class FakeRateLimitTable {
   upsert(row: Row) {
     const i = this.rows.findIndex(
       (r) =>
-        r.resource_type === row.resource_type
-        && r.resource_key === row.resource_key
-        && r.window_start === row.window_start
-        && r.window_size === row.window_size,
+        r.resource_type === row.resource_type &&
+        r.resource_key === row.resource_key &&
+        r.window_start === row.window_start &&
+        r.window_size === row.window_size,
     );
     if (i >= 0) this.rows[i] = row;
     else this.rows.push(row);

@@ -248,14 +248,59 @@ function checkHeader(file: string, lines: string[]): Finding[] {
 // -----------------------------------------------------------------------------
 // Rule 4: no CREATE in auth.*
 // -----------------------------------------------------------------------------
-// Matches `CREATE [OR REPLACE] [UNIQUE] <kind> [IF NOT EXISTS] auth.<name>`.
-// Kinds covered: TABLE, INDEX, VIEW, MATERIALIZED VIEW, FUNCTION, TRIGGER,
-// POLICY, TYPE, SEQUENCE, SCHEMA. Comment lines are stripped before matching.
-const CREATE_AUTH_RE =
-  /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:UNIQUE\s+)?(?:MATERIALIZED\s+VIEW|TABLE|INDEX|VIEW|FUNCTION|TRIGGER|POLICY|TYPE|SEQUENCE|SCHEMA)\b[^;]*?\bauth\./i;
+// Detects when a CREATE statement TARGETS the `auth.` schema. The target schema
+// appears in different positions depending on the CREATE kind, so we use one
+// pattern per kind instead of a single greedy `[^;]*?\bauth\.` which would also
+// flag legitimate `auth.uid()` calls inside `USING`/`WITH CHECK` clauses of
+// policies targeting `public.*` tables.
+//
+// Covered kinds (target schema position shown with «auth»):
+//   CREATE [OR REPLACE] [MATERIALIZED] VIEW «auth».name
+//   CREATE TABLE [IF NOT EXISTS] «auth».name
+//   CREATE [OR REPLACE] FUNCTION «auth».name
+//   CREATE TYPE «auth».name
+//   CREATE SEQUENCE «auth».name
+//   CREATE [UNIQUE] INDEX [name] ON «auth».table
+//   CREATE [OR REPLACE] TRIGGER name ... ON «auth».table
+//   CREATE POLICY name ON «auth».table
+//   CREATE SCHEMA «auth»
+const CREATE_AUTH_PATTERNS: RegExp[] = [
+  // Direct schema-prefixed targets: CREATE [OR REPLACE] <kind> [IF NOT EXISTS] auth.X
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?(?:MATERIALIZED\s+)?VIEW\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  /\bCREATE\s+TABLE\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION\s+auth\./i,
+  /\bCREATE\s+TYPE\s+auth\./i,
+  /\bCREATE\s+SEQUENCE\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\./i,
+  // Table-attached targets: CREATE ... ON auth.table
+  /\bCREATE\s+(?:UNIQUE\s+)?INDEX\s+(?:CONCURRENTLY\s+)?(?:IF\s+NOT\s+EXISTS\s+)?(?:[a-zA-Z_][\w]*\s+)?ON\s+auth\./i,
+  /\bCREATE\s+(?:OR\s+REPLACE\s+)?TRIGGER\s+[a-zA-Z_][\w]*\s+(?:BEFORE|AFTER|INSTEAD\s+OF)[^;]*?\bON\s+auth\./i,
+  /\bCREATE\s+POLICY\s+[a-zA-Z_][\w]*\s+ON\s+auth\./i,
+  // Schema creation itself
+  /\bCREATE\s+SCHEMA\s+(?:IF\s+NOT\s+EXISTS\s+)?auth\b/i,
+];
+
+// Exemption annotation — same shape/precedence as AUDIT-FK-OK.
+// Use on the matched line OR within the prior 5 non-blank raw lines.
+// Canonical use case: the official Supabase signup hook
+//   `CREATE TRIGGER ... ON auth.users FOR EACH ROW EXECUTE FUNCTION public.X()`
+// which is applied via service_role at migration time.
+const AUDIT_AUTH_OK_RE = /--\s*AUDIT-AUTH-OK\s*:/i;
+
+function hasAuthOkAnnotation(rawLines: string[], lineNo: number): boolean {
+  if (AUDIT_AUTH_OK_RE.test(rawLines[lineNo - 1] ?? "")) return true;
+  let scanned = 0;
+  for (let j = lineNo - 2; j >= 0 && scanned < 5; j--) {
+    const prev = rawLines[j];
+    if (prev.trim() === "") continue;
+    scanned++;
+    if (AUDIT_AUTH_OK_RE.test(prev)) return true;
+  }
+  return false;
+}
 
 function checkNoAuthCreates(file: string, body: string): Finding[] {
   const findings: Finding[] = [];
+  const rawLines = body.split("\n");
   const sanitized = stripBlockComments(body)
     .split("\n")
     .map((l, idx) => ({ idx, sql: stripLineComment(l) }))
@@ -274,25 +319,35 @@ function checkNoAuthCreates(file: string, body: string): Finding[] {
     charToLine.push(idx + 1);
   }
 
-  let searchFrom = 0;
-  while (searchFrom < buffer.length) {
-    CREATE_AUTH_RE.lastIndex = 0;
-    const match = buffer.slice(searchFrom).match(CREATE_AUTH_RE);
-    if (!match || match.index === undefined) break;
-    const absIdx = searchFrom + match.index;
-    const lineNo = charToLine[absIdx] ?? 0;
-    findings.push({
-      level: "error",
-      file,
-      line: lineNo,
-      rule: "no-auth-objects",
-      message:
-        "CREATE targets the `auth.` schema — helpers must live in `app.` " +
-        "(spec §5.11). Move the object to public/app or drop it.",
-    });
-    // Advance past the matched statement (next ';' or end).
-    const semi = buffer.indexOf(";", absIdx);
-    searchFrom = semi >= 0 ? semi + 1 : buffer.length;
+  // Collect violations from all patterns; dedup by line to avoid double-reporting
+  // when more than one pattern would otherwise match the same statement.
+  // Skip lines carrying an `-- AUDIT-AUTH-OK:` annotation (inline or within 5
+  // prior raw lines) — same exemption shape as AUDIT-FK-OK.
+  const reported = new Set<number>();
+  for (const pattern of CREATE_AUTH_PATTERNS) {
+    let searchFrom = 0;
+    while (searchFrom < buffer.length) {
+      const match = buffer.slice(searchFrom).match(pattern);
+      if (!match || match.index === undefined) break;
+      const absIdx = searchFrom + match.index;
+      const lineNo = charToLine[absIdx] ?? 0;
+      if (!reported.has(lineNo) && !hasAuthOkAnnotation(rawLines, lineNo)) {
+        reported.add(lineNo);
+        findings.push({
+          level: "error",
+          file,
+          line: lineNo,
+          rule: "no-auth-objects",
+          message:
+            "CREATE targets the `auth.` schema — helpers must live in `app.` " +
+            "(spec §5.11). Move the object to public/app or drop it, or add " +
+            "`-- AUDIT-AUTH-OK: <reason>` annotation if this is the documented " +
+            "exception (e.g., official Supabase signup hook trigger).",
+        });
+      }
+      const semi = buffer.indexOf(";", absIdx);
+      searchFrom = semi >= 0 ? semi + 1 : buffer.length;
+    }
   }
   return findings;
 }

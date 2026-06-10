@@ -44,7 +44,11 @@ export type HCaptchaApiResponse = {
 
 export type CaptchaVerifyResult =
   | { ok: true; bypassed: boolean }
-  | { ok: false; reason: 'missing_token' | 'missing_secret' | 'rejected' | 'network_error'; codes?: string[] };
+  | {
+    ok: false;
+    reason: 'missing_token' | 'missing_secret' | 'rejected' | 'network_error';
+    codes?: string[];
+  };
 
 /** Reads HCAPTCHA_ENABLED with a safe default ('true' in prod). */
 export function captchaEnabled(getEnv: (k: string) => string | undefined = Deno.env.get): boolean {

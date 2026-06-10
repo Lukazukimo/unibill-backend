@@ -20,8 +20,8 @@ import { makeRequest } from './_test_utils.ts';
 import {
   captchaEnabled,
   extractClientIp,
-  HCAPTCHA_VERIFY_URL,
   type FetchFn,
+  HCAPTCHA_VERIFY_URL,
   verifyCaptcha,
 } from './captcha.ts';
 
