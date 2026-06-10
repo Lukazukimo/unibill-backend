@@ -562,7 +562,7 @@ Deno.test('handler happy path: 200 with bindings + vault + insert', async () => 
 
   // domain_event emitted
   assert(emittedEvent !== null);
-  const event = nonNull(emittedEvent);
+  const event = nonNull<{ type: string; aggregate_id: string }>(emittedEvent);
   assertEquals(event.type, 'email.connected');
   assertEquals(event.aggregate_id, body.connected_email_id);
 });

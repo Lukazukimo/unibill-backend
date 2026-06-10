@@ -393,7 +393,7 @@ Deno.test('happy path (terms): row marked revoked + reason captured + event emit
 
   // Event emitted with payload shape.
   assert(emitted !== null);
-  const emittedEvent = nonNull(emitted);
+  const emittedEvent = nonNull<{ type: string; payload: unknown; aggregate_id: string }>(emitted);
   assertEquals(emittedEvent.type, 'consent.revoked');
   assertEquals(emittedEvent.aggregate_id, active.id);
   const payload = emittedEvent.payload as { version: number; data: Record<string, unknown> };
@@ -441,7 +441,7 @@ Deno.test('telemetry revoke purges client_telemetry and reports the count', asyn
 
   // Event payload carries the purge count.
   assert(emitted !== null);
-  const emittedEvent = nonNull(emitted);
+  const emittedEvent = nonNull<{ payload: unknown }>(emitted);
   const payload = emittedEvent.payload as { data: { telemetry_purged: number } };
   assertEquals(payload.data.telemetry_purged, 3);
 });
