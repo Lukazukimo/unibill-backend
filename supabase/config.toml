@@ -1,0 +1,91 @@
+# Supabase project configuration for Unibill backend (T-103).
+#
+# Local development is driven by the Supabase CLI; this file is committed so that
+# every contributor and CI runner gets the same local stack shape.
+#
+# Production overrides live in the Supabase Cloud dashboard and in the
+# environment-specific `supabase link` configuration; do NOT promote anything
+# secret through this file.
+#
+# Spec refs: §3.1 (backend stack), §3.4 (repo layout).
+
+# A project_id is required by the CLI; this is a local-only identifier and does
+# not have to match the linked Supabase Cloud `project_ref`.
+project_id = "unibill-dev"
+
+# -------------------------------------------------------------------------
+# REST/GraphQL API gateway exposed by `supabase start`. The default port is
+# the Supabase canonical 54321 so that mobile/web clients can point at
+# http://localhost:54321 without extra config.
+# -------------------------------------------------------------------------
+[api]
+enabled = true
+port = 54321
+# Schemas exposed via PostgREST. `public` is kept for Supabase-generated
+# objects; `app` is the Unibill schema (see T-105 / spec §5.11).
+schemas = ["public", "app"]
+# Schemas that PostgREST will use to resolve unqualified identifiers.
+extra_search_path = ["public", "app", "extensions"]
+# Cap rows returned by PostgREST to keep development feedback fast and to
+# match the API quota that Supabase enforces on the free tier.
+max_rows = 1000
+
+# -------------------------------------------------------------------------
+# Embedded Postgres for local development. Major version 15 matches Supabase
+# Cloud's current default and unlocks the extensions listed in spec §3.1.
+# -------------------------------------------------------------------------
+[db]
+port = 54322
+# Shadow database used by `supabase db diff` to compute migration deltas.
+shadow_port = 54320
+major_version = 15
+
+# -------------------------------------------------------------------------
+# Supabase Studio (web UI) for inspecting the local stack.
+# -------------------------------------------------------------------------
+[studio]
+enabled = true
+port = 54323
+
+# -------------------------------------------------------------------------
+# Storage service — used for PDF archives and household assets.
+# Keep the file-size limit aligned with the Cloud free-tier default so that
+# local validation catches oversized uploads before they reach production.
+# -------------------------------------------------------------------------
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+# -------------------------------------------------------------------------
+# Auth (GoTrue). The MVP relies on magic-link email auth (spec §2.2),
+# deep-linked back into the mobile app via the `unibill://` URI scheme.
+# -------------------------------------------------------------------------
+[auth]
+enabled = true
+site_url = "unibill://"
+additional_redirect_urls = [
+  "unibill://auth/callback",
+  "unibill://auth/recovery",
+  "unibill://auth/magic-link",
+]
+# 1 hour access tokens; the mobile SDK refreshes silently.
+jwt_expiry = 3600
+# Rotate refresh tokens to limit blast radius of a stolen token.
+refresh_token_rotation_enabled = true
+# Floor for any password-based fallback flows. Magic-link is preferred.
+password_min_length = 10
+
+[auth.email]
+enable_signup = true
+# Require confirmation when a user changes their primary email so that a
+# compromised inbox alone cannot pivot to a new identity.
+double_confirm_changes = true
+enable_confirmations = true
+
+# -------------------------------------------------------------------------
+# Edge Functions runtime. `per_worker` keeps each function instance isolated,
+# matching the production deployment model used by Supabase Cloud.
+# -------------------------------------------------------------------------
+[edge_runtime]
+enabled = true
+policy = "per_worker"
