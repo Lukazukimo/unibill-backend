@@ -24,7 +24,7 @@
 //     [--spec <path>] [--seed <path>] [--functions <path>] [--json]
 //
 // Defaults (relative to repo root):
-//   --spec       ../docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
+//   --spec       docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
 //   --seed       supabase/seeds/app_settings_defaults.sql
 //   --functions  supabase/functions
 //
@@ -33,27 +33,21 @@
 //   1  drift detected (diff printed to stdout)
 //   2  invocation/parse error (printed to stderr)
 //
-// CI integration:
-//   TODO(main-loop): add a new job `config-drift` to
-//   `.github/workflows/ci.yml`:
+// CI integration (wired in .github/workflows/ci.yml job `config-drift`):
 //
 //       config-drift:
 //         name: config-drift (app_settings ↔ spec ↔ code)
 //         runs-on: ubuntu-latest
 //         steps:
 //           - uses: actions/checkout@v4
-//             with: { fetch-depth: 1, submodules: false }
 //           - uses: denoland/setup-deno@v2
 //             with: { deno-version: v2.x }
-//           - name: Check config docs sync
-//             run: |
-//               deno run --allow-read \
-//                 scripts/check_config_docs_sync.ts \
-//                 --spec ../docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
+//           - run: deno run --allow-read --allow-env scripts/check_config_docs_sync.ts \
+//                 --spec docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
 //
-//   The spec lives in a sibling directory (`unibill/docs/...`) — CI must
-//   `actions/checkout` the docs repo or use a path strategy. If the spec
-//   path is unreachable, the script exits 2 with a clear error.
+//   The spec was imported into this repo at docs/superpowers/specs/ so CI
+//   resolves it without needing a sibling checkout. If the spec path is
+//   unreachable, the script exits 2 with a clear error.
 //
 // How to fix common drift scenarios:
 //   ─────────────────────────────────────────────────────────────────────────
@@ -135,12 +129,12 @@ interface Args {
 
 function defaultSpecPath(): string {
   // Resolve relative to the script's location so the default works whether
-  // invoked from the repo root or from a CI shim. The spec lives in a sibling
-  // checkout (../docs/superpowers/...) per the monorepo plan. The current
-  // import.meta.url path is `<repo>/scripts/check_config_docs_sync.ts`, so
-  // `../../docs/...` lands at `<parent>/docs/superpowers/...`.
+  // invoked from the repo root or from a CI shim. The spec was imported into
+  // this repo at docs/superpowers/specs/. The current import.meta.url path is
+  // `<repo>/scripts/check_config_docs_sync.ts`, so `../docs/...` lands at
+  // `<repo>/docs/superpowers/specs/...` — the canonical co-located spec.
   return new URL(
-    '../../docs/superpowers/specs/2026-06-08-unibill-mvp-design.md',
+    '../docs/superpowers/specs/2026-06-08-unibill-mvp-design.md',
     import.meta.url,
   ).pathname;
 }

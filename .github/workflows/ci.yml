@@ -45,7 +45,7 @@ jobs:
           deno-version: v2.x
 
       - name: Run migration linter (filename + structural invariants)
-        run: deno run --allow-read scripts/lint_migrations.ts
+        run: deno run --allow-read --allow-env scripts/lint_migrations.ts
 
   config-drift:
     name: config-drift (app_settings docs ↔ seeds ↔ code)
@@ -60,7 +60,7 @@ jobs:
           deno-version: v2.x
 
       - name: Run config-docs sync drift check
-        run: deno run --allow-read --allow-env scripts/check_config_docs_sync.ts
+        run: deno run --allow-read --allow-env scripts/check_config_docs_sync.ts --spec docs/superpowers/specs/2026-06-08-unibill-mvp-design.md
 
   test-db:
     name: test-db (pgTAP)
@@ -113,6 +113,13 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+
+      - name: Cache transitive npm deps (needed by jsr:@supabase/supabase-js)
+        run: |
+          # deno.jsonc has `"nodeModulesDir": "auto"` so this materializes
+          # the transitive npm modules (e.g., @supabase/realtime-js) into ./node_modules
+          # before tests run, avoiding mid-test resolution failures.
+          deno install || true
 
       # TODO(T-125+): real tests land alongside _shared/ scaffolding.
       - name: Run Deno tests (skeleton)
