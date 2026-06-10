@@ -33,14 +33,34 @@ jobs:
         run: deno lint supabase/functions
 
   migration-lint:
-    name: migration-lint (filename convention)
+    name: migration-lint (filename + structural invariants)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run migration filename lint
-        run: bash scripts/lint_migrations.sh
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run migration linter (filename + structural invariants)
+        run: deno run --allow-read scripts/lint_migrations.ts
+
+  config-drift:
+    name: config-drift (app_settings docs ↔ seeds ↔ code)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run config-docs sync drift check
+        run: deno run --allow-read --allow-env scripts/check_config_docs_sync.ts
 
   test-db:
     name: test-db (pgTAP)
