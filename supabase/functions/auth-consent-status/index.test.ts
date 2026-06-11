@@ -519,9 +519,7 @@ Deno.test('full re-consent loop: bump terms_version → status flips → accept 
 
   // 2) Ops bumps the published terms_version to v2.0.
   state.settings = state.settings.map((s) =>
-    s.key === 'legal.terms_version'
-      ? { ...s, value: { v: 'v2.0-2026-09' } }
-      : s
+    s.key === 'legal.terms_version' ? { ...s, value: { v: 'v2.0-2026-09' } } : s
   );
 
   res = await handler(makeRequest());
@@ -534,9 +532,7 @@ Deno.test('full re-consent loop: bump terms_version → status flips → accept 
   // 3) User re-accepts via consent-accept (we simulate the DB write here):
   //    the old terms row is revoked, a new active terms row at v2.0 inserted.
   state.consents = state.consents.map((c) =>
-    c.purpose === 'terms'
-      ? { ...c, revoked_at: '2026-09-02T10:00:00.000Z' }
-      : c
+    c.purpose === 'terms' ? { ...c, revoked_at: '2026-09-02T10:00:00.000Z' } : c
   );
   state.consents.push({
     user_id: 'u1',

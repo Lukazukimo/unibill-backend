@@ -59,7 +59,9 @@ function fakeClient(opts: {
         const a = opts.auth;
         if (!a) return Promise.resolve({ data: { user: null }, error: null });
         if (a.kind === 'throws') return Promise.reject(a.err);
-        if (a.kind === 'error') return Promise.resolve({ data: { user: null }, error: { message: a.message } });
+        if (a.kind === 'error') {
+          return Promise.resolve({ data: { user: null }, error: { message: a.message } });
+        }
         return Promise.resolve({ data: { user: a.user }, error: null });
       },
     },
@@ -78,7 +80,9 @@ function fakeClient(opts: {
           // resolve here — `.is()` is the terminal call in loadHouseholdMemberships
           const m = opts.members;
           if (!m) return Promise.resolve({ data: [], error: null });
-          if (m.kind === 'error') return Promise.resolve({ data: null, error: { message: m.message } });
+          if (m.kind === 'error') {
+            return Promise.resolve({ data: null, error: { message: m.message } });
+          }
           // ignore userIdFilter in fake — caller fixture controls rows
           void userIdFilter;
           return Promise.resolve({ data: m.rows, error: null });

@@ -20,10 +20,7 @@
 
 import { createClient } from 'jsr:@supabase/supabase-js@^2.45.0';
 import { withCorrelation } from '../_shared/correlation.ts';
-import {
-  extractClientIp,
-  verifyCaptcha,
-} from '../_shared/captcha.ts';
+import { extractClientIp, verifyCaptcha } from '../_shared/captcha.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import {
   countAndIncrementIp,
@@ -41,15 +38,19 @@ type SignupRequest = {
 function isSignupRequest(value: unknown): value is SignupRequest {
   if (!value || typeof value !== 'object') return false;
   const v = value as Record<string, unknown>;
-  return typeof v.email === 'string' && typeof v.password === 'string'
-    && v.email.length > 0 && v.password.length > 0
-    && (v.captcha_token === undefined || v.captcha_token === null || typeof v.captcha_token === 'string');
+  return typeof v.email === 'string' && typeof v.password === 'string' &&
+    v.email.length > 0 && v.password.length > 0 &&
+    (v.captcha_token === undefined || v.captcha_token === null ||
+      typeof v.captcha_token === 'string');
 }
 
 function jsonResponse(status: number, body: unknown, extraHeaders: HeadersInit = {}): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { 'content-type': 'application/json', ...Object.fromEntries(new Headers(extraHeaders)) },
+    headers: {
+      'content-type': 'application/json',
+      ...Object.fromEntries(new Headers(extraHeaders)),
+    },
   });
 }
 
@@ -125,8 +126,8 @@ export const handler = withCorrelation(async (_ctx, req) => {
     email,
     password: body.password,
     options: {
-      emailRedirectTo: Deno.env.get('UNIBILL_SIGNUP_REDIRECT_URL')
-        ?? 'unibill://auth/callback',
+      emailRedirectTo: Deno.env.get('UNIBILL_SIGNUP_REDIRECT_URL') ??
+        'unibill://auth/callback',
     },
   });
 

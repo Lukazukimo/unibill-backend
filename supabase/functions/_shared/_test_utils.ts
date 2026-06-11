@@ -21,7 +21,10 @@ export function makeRequest(
 
 /** Asserts that a value is a UUID-shaped string (loose check). */
 export function assertIsUuid(value: unknown): void {
-  if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)) {
+  if (
+    typeof value !== 'string' ||
+    !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value)
+  ) {
     throw new Error(`expected UUID, got: ${String(value)}`);
   }
 }

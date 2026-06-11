@@ -44,12 +44,13 @@ function fakeFactory(opts: FakeOpts): ImapClientFactory {
   return (input) => {
     opts.captured?.push(input);
     const client: ImapClientLike = {
-      async connect() {
-        if (opts.onConnect === 'ok') return;
-        throw opts.onConnect.throw;
+      connect(): Promise<void> {
+        if (opts.onConnect === 'ok') return Promise.resolve();
+        return Promise.reject(opts.onConnect.throw);
       },
-      async logout() {
+      logout(): Promise<void> {
         if (opts.logoutCalled) opts.logoutCalled.value = true;
+        return Promise.resolve();
       },
     };
     return client;
@@ -131,7 +132,9 @@ Deno.test('validateImapCredentials: returns invalid_credentials on auth failure'
     { email: 'user@example.com', password: 'wrongwrongwrong1' },
     {
       imapFactory: fakeFactory({
-        onConnect: { throw: Object.assign(new Error('LOGIN failed'), { authenticationFailed: true }) },
+        onConnect: {
+          throw: Object.assign(new Error('LOGIN failed'), { authenticationFailed: true }),
+        },
         logoutCalled,
       }),
     },

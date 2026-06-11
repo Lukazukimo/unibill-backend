@@ -163,7 +163,6 @@ function makeFakeClient(state: FakeState): any {
       // SELECT builder
       // deno-lint-ignore no-explicit-any
       const filters: Array<(r: any) => boolean> = [];
-      // deno-lint-ignore no-explicit-any
       let updatePatch: Record<string, unknown> | null = null;
 
       // deno-lint-ignore no-explicit-any

@@ -35,9 +35,9 @@ Deno.test('newCorrelationId ignores malformed inbound headers', () => {
 
 Deno.test('withCorrelation injects a context with a correlation_id', async () => {
   let observedId: string | null = null;
-  const handler = withCorrelation(async (ctx, _req) => {
+  const handler = withCorrelation((ctx, _req) => {
     observedId = ctx.correlation_id;
-    return new Response('ok');
+    return Promise.resolve(new Response('ok'));
   });
 
   const res = await handler(makeRequest());

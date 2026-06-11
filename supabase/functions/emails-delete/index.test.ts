@@ -32,8 +32,8 @@
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import {
   buildHandler,
-  extractConnectedEmailId,
   type DeleteEmailResponse,
+  extractConnectedEmailId,
   type HandlerDeps,
 } from './index.ts';
 import { nonNull } from '../_shared/_test_utils.ts';
@@ -170,7 +170,6 @@ function makeFakeClient(state: FakeState): any {
 function buildConnectedEmailsBuilder(state: FakeState): any {
   // deno-lint-ignore no-explicit-any
   const filters: Array<(r: any) => boolean> = [];
-  // deno-lint-ignore no-explicit-any
   let updatePatch: Record<string, unknown> | null = null;
   let mode: 'select' | 'update' = 'select';
 
@@ -226,7 +225,6 @@ function buildConnectedEmailsBuilder(state: FakeState): any {
 function buildBindingsBuilder(state: FakeState): any {
   // deno-lint-ignore no-explicit-any
   const filters: Array<(r: any) => boolean> = [];
-  // deno-lint-ignore no-explicit-any
   let updatePatch: Record<string, unknown> | null = null;
 
   // deno-lint-ignore no-explicit-any
@@ -266,7 +264,9 @@ function freshState(opts: Partial<FakeState> = {}): FakeState {
   };
 }
 
-function callerStub(user: { id: string; isSystemAdmin: boolean } | null): HandlerDeps['getCallerUser'] {
+function callerStub(
+  user: { id: string; isSystemAdmin: boolean } | null,
+): HandlerDeps['getCallerUser'] {
   return () => Promise.resolve(user);
 }
 
@@ -275,9 +275,7 @@ function makeRequest(opts: {
   method?: string;
 } = {}): Request {
   const id = opts.id === undefined ? '11111111-1111-4111-8111-111111111111' : opts.id;
-  const path = id === null
-    ? 'https://x.test/emails/not-a-uuid'
-    : `https://x.test/emails/${id}`;
+  const path = id === null ? 'https://x.test/emails/not-a-uuid' : `https://x.test/emails/${id}`;
   return new Request(path, {
     method: opts.method ?? 'DELETE',
   });
@@ -458,9 +456,7 @@ Deno.test('handler happy path as OWNER: 200 + cascade soft-delete + vault hard-d
     assertEquals(b.deleted_at, FIXED_NOW.toISOString());
     assertEquals(b.updated_at, FIXED_NOW.toISOString());
   }
-  const unrelated = state.bindings.find((b) =>
-    b.connected_email_id !== id
-  );
+  const unrelated = state.bindings.find((b) => b.connected_email_id !== id);
   assert(unrelated !== undefined);
   assertEquals(unrelated!.deleted_at, null);
 

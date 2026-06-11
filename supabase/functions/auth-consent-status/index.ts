@@ -62,10 +62,7 @@ import { type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
 import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
-import {
-  emitDomainEvent,
-  type DomainEventInput,
-} from '../_shared/events.ts';
+import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
 
 // ---------------------------------------------------------------------------
 // Types

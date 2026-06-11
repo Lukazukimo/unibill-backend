@@ -221,10 +221,10 @@ class FakeRateLimitTable {
   upsert(row: Row) {
     const i = this.rows.findIndex(
       (r) =>
-        r.resource_type === row.resource_type
-        && r.resource_key === row.resource_key
-        && r.window_start === row.window_start
-        && r.window_size === row.window_size,
+        r.resource_type === row.resource_type &&
+        r.resource_key === row.resource_key &&
+        r.window_start === row.window_start &&
+        r.window_size === row.window_size,
     );
     if (i >= 0) this.rows[i] = row;
     else this.rows.push(row);
