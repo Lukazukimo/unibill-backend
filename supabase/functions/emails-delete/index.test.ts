@@ -170,7 +170,6 @@ function makeFakeClient(state: FakeState): any {
 function buildConnectedEmailsBuilder(state: FakeState): any {
   // deno-lint-ignore no-explicit-any
   const filters: Array<(r: any) => boolean> = [];
-  // deno-lint-ignore no-explicit-any
   let updatePatch: Record<string, unknown> | null = null;
   let mode: 'select' | 'update' = 'select';
 
@@ -226,7 +225,6 @@ function buildConnectedEmailsBuilder(state: FakeState): any {
 function buildBindingsBuilder(state: FakeState): any {
   // deno-lint-ignore no-explicit-any
   const filters: Array<(r: any) => boolean> = [];
-  // deno-lint-ignore no-explicit-any
   let updatePatch: Record<string, unknown> | null = null;
 
   // deno-lint-ignore no-explicit-any

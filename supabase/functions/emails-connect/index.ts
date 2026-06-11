@@ -206,7 +206,7 @@ export function validateConnectBody(value: unknown): {
   }
 
   // household_ids
-  let householdIds: string[] = [];
+  const householdIds: string[] = [];
   if (!Array.isArray(v.household_ids)) {
     errors.push({ field: 'household_ids', message: 'must be an array of UUID strings' });
   } else if (v.household_ids.length === 0) {

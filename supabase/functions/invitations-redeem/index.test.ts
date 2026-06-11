@@ -180,7 +180,6 @@ function makeFakeClient(state: FakeState): any {
 // ---------------------------------------------------------------------------
 // deno-lint-ignore no-explicit-any
 function bucketsBuilder(state: FakeState): any {
-  // deno-lint-ignore no-explicit-any
   const filters: Array<(r: BucketRow) => boolean> = [];
   let mode: 'select' | 'delete' | null = null;
 
