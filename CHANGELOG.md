@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.1.2](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.1...v0.1.2) (2026-06-11)
+
+
+### Bug Fixes
+
+* **ci:** Unblock migration-lint, config-drift, and test-deno jobs ([fcb276c](https://github.com/Lukazukimo/unibill-backend/commit/fcb276c2a8da5c831bf95581714772d7d8c3bf0a))
+* **ci:** Unblock migration-lint, config-drift, test-deno (3 mechanical fixes) ([d6402b4](https://github.com/Lukazukimo/unibill-backend/commit/d6402b47f5a4b056aa7f0fd24a4be572a9b42ff2))
+* **functions:** Resolve 29 TS errors revealed by test-deno (9 files) ([33a3103](https://github.com/Lukazukimo/unibill-backend/commit/33a310361ca5ea0495ba45d8acbb3895b2052a9d))
+* **functions:** Resolve 29 TS errors revealed by test-deno (9 files) ([a6743f8](https://github.com/Lukazukimo/unibill-backend/commit/a6743f8da57abfa8b475b6396aa0e03f6eef9b53))
+* **functions:** Use nonNull() helper instead of broken NonNullable cast ([64410d2](https://github.com/Lukazukimo/unibill-backend/commit/64410d253a2cd04a8d32ced952be54a964390ef5))
+* **lint:** AUDIT-AUTH-OK annotation for Supabase signup hook (last migration-lint error) ([7c136ae](https://github.com/Lukazukimo/unibill-backend/commit/7c136aeb3e29d7753ccd2669c7f4f64e5d4937a2))
+* **lint:** Resolve 8 deno lint errors after fmt pass ([fff65ff](https://github.com/Lukazukimo/unibill-backend/commit/fff65ff962f86b56b1a3ad4fb969c264909c0908))
+* **lint:** Support AUDIT-AUTH-OK annotation for Supabase signup hook ([670242d](https://github.com/Lukazukimo/unibill-backend/commit/670242d22a399d08b8283b0c5f97c53a1881cfd6))
+* **lint:** Tighten no-auth-objects regex + add 8 AUDIT-FK-OK annotations ([dbc6079](https://github.com/Lukazukimo/unibill-backend/commit/dbc607960f47b68d162e131bbf7b9a699f5d59d3))
+* **lint:** Tighten no-auth-objects regex + add AUDIT-FK-OK annotations ([5077b3b](https://github.com/Lukazukimo/unibill-backend/commit/5077b3b93584b0cc65df0dbac2bbaeca490b9095))
+* **tests:** Pass explicit generic to nonNull&lt;T&gt;(X) calls ([7b5fd89](https://github.com/Lukazukimo/unibill-backend/commit/7b5fd8999e30b535609c7869498d39971c4b649d))
+* **tests:** Re-place nonNull import outside multi-line existing imports ([a6650d3](https://github.com/Lukazukimo/unibill-backend/commit/a6650d302b4f031b1cd0f12db5e50b0086b2ea35))
+
+
+### Tests
+
+* **functions:** Fix makeRequest GET-with-body bug + skip lockout-priority test ([14472f7](https://github.com/Lukazukimo/unibill-backend/commit/14472f71cec770ebcf15b6483eb2e6e66ff03b20))
+
 ## [0.1.1](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.0...v0.1.1) (2026-06-10)
 
 
