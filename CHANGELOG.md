@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.3](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.2...v0.1.3) (2026-06-14)
+
+
+### Features
+
+* **functions:** Households-create — atomic household + creator-admin (T-516) ([6857943](https://github.com/Lukazukimo/unibill-backend/commit/685794342c6d679365e4b6d7fa9f35849c170117))
+* **functions:** Households-create — atomic household + creator-admin (T-516) ([3124b13](https://github.com/Lukazukimo/unibill-backend/commit/3124b13635ad50bcecd84d9d820d6b081f82601f))
+
+
+### CI / Tooling
+
+* **deploy:** Push auth/api config in the dev-deploy plan ([040798b](https://github.com/Lukazukimo/unibill-backend/commit/040798b945764de5027c8c66064b4051f6377a28))
+* **deploy:** Push auth/api config in the dev-deploy plan ([8ed65ec](https://github.com/Lukazukimo/unibill-backend/commit/8ed65ecffcb8fd97bceb3852c2ecda71f2ad02c9))
+
 ## [0.1.2](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.1...v0.1.2) (2026-06-11)
 
 
