@@ -200,14 +200,14 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.user_profiles
         SET display_name = 'hacked'
       WHERE user_id = 'bbbbbbb2-2222-2222-2222-222222222222'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#2 user_profiles: user A UPDATE of user B''s profile affects 0 rows (RLS silent deny)'
 );
@@ -245,14 +245,14 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.households
         SET name = 'pwned'
       WHERE id = 'ddddddd2-2222-2222-2222-222222222222'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#5 households: user A UPDATE of household Y affects 0 rows'
 );
@@ -289,14 +289,14 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      DELETE FROM public.members
       WHERE household_id = 'ddddddd2-2222-2222-2222-222222222222'
         AND user_id      = 'bbbbbbb2-2222-2222-2222-222222222222'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#8 members: user A DELETE of member B (household Y) affects 0 rows'
 );
@@ -335,13 +335,13 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      DELETE FROM public.household_invitations
       WHERE code = 'BBBB0002'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#11 household_invitations: admin A DELETE of household Y invite affects 0 rows'
 );
@@ -391,15 +391,15 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.app_settings
         SET value = '{"v": false}'::jsonb
       WHERE key = 'test.global.flag'
         AND scope = 'global'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#14 app_settings: non-sys-admin UPDATE of global row affects 0 rows'
 );
@@ -409,16 +409,16 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.app_settings
         SET value = '{"v":"hacked"}'::jsonb
       WHERE key = 'test.household.flag'
         AND scope = 'household'
         AND scope_id = 'ddddddd2-2222-2222-2222-222222222222'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#15 app_settings: user A UPDATE of household Y scoped row affects 0 rows'
 );
@@ -428,15 +428,15 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('5d5d5d5d-5d5d-5d5d-5d5d-5d5d5d5d5d5d'::uuid,
                           NULL, true);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.app_settings
         SET value = '{"v": "sysadmin-changed"}'::jsonb
       WHERE key = 'test.global.flag'
         AND scope = 'global'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   1,
   '#16 app_settings: sys admin UPDATE of global row succeeds (1 row affected)'
 );

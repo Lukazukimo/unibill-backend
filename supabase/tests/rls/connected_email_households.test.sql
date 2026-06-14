@@ -280,15 +280,15 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('bbbbbbb2-2222-2222-2222-222222222222'::uuid,
                           'ddddddd2-2222-2222-2222-222222222222'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.connected_email_households
         SET is_default = false
       WHERE connected_email_id = '11111111-aaaa-aaaa-aaaa-111111111111'
         AND household_id       = 'ccccccc1-1111-1111-1111-111111111111'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   0,
   '#5 non-admin member write: admin A (member of X, not admin of X) UPDATE of X-binding affects 0 rows'
 );
