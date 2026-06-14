@@ -41,10 +41,17 @@ jobs:
           version: latest
 
       # TODO: wire link + push + deploy once a real Supabase project exists (deploy checklist §11.5).
-      - name: Push migrations (placeholder)
+      - name: Push migrations + config (placeholder)
         run: |
           echo "Would run: supabase link --project-ref \"$SUPABASE_PROJECT_REF\""
           echo "Would run: supabase db push --linked --password \"$SUPABASE_DB_PASSWORD\""
+          # `db push` only ships migrations (schema). `config push` applies the
+          # [auth]/[api] config from supabase/config.toml to the remote project
+          # — including additional_redirect_urls (the unibill://auth/* deep-link
+          # allow-list consumed by the mobile auth flows, T-515), password rules
+          # and token TTLs. Without it the deep-link allow-list never reaches the
+          # project and would have to be set by hand in the dashboard.
+          echo "Would run: supabase config push"
 
       - name: Deploy Edge Functions (placeholder)
         run: |
