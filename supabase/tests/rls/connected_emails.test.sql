@@ -273,14 +273,14 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.connected_emails
         SET last_error = 'set-by-owner-path-test'
       WHERE id = '22222222-bbbb-bbbb-bbbb-222222222222'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   1,
   '#4 owner-not-admin-of-binding: owner O can UPDATE the orphan credential (owner path independent of admin path)'
 );
@@ -298,14 +298,14 @@ SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('bbbbbbb2-2222-2222-2222-222222222222'::uuid,
                           'ddddddd2-2222-2222-2222-222222222222'::uuid, false);
 
-SELECT is(
-  (WITH x AS (
+WITH x AS (
      UPDATE public.connected_emails
         SET last_error = 'set-by-admin-y-via-binding'
       WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'
       RETURNING 1
-   )
-   SELECT count(*)::int FROM x),
+)
+SELECT is(
+  (SELECT count(*)::int FROM x),
   1,
   '#5 admin-of-binding-not-owner: admin A (household Y) can UPDATE the shared credential (admin path independent of ownership)'
 );
