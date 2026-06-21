@@ -56,7 +56,6 @@ function fakeImap(
       },
       search: (_q: Record<string, unknown>) =>
         Promise.resolve(opts.searchUids ?? messages.map((m) => m.uid)),
-      // deno-lint-ignore require-yield
       fetch: (_range: string) =>
         (async function* () {
           for (const m of messages) yield m;
@@ -361,7 +360,7 @@ Deno.test('message without a Message-ID: captured, p_source_message_id null, ide
 });
 
 Deno.test('incremental sync (cursor set) skips messages <= cursor', async () => {
-  const { client, cap } = fakeClient({
+  const { client } = fakeClient({
     mailbox: {
       id: 'ce1',
       email_address: 'o@x.com',
