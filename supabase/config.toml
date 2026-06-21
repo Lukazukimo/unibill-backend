@@ -166,3 +166,17 @@ sms_sent = 0
 [edge_runtime]
 enabled = true
 policy = "per_worker"
+
+# -------------------------------------------------------------------------
+# Per-function overrides. The system workers (pg_cron → private.invoke_edge_function
+# with a service_role bearer) keep the platform's default `verify_jwt = true`
+# EXPLICITLY: the API gateway rejects any request without a project-signed JWT
+# before it reaches the function (layer 1), and `requireServiceRole` then narrows
+# to the exact service-role secret (layer 2). Making this explicit guards against
+# a future change silently turning these into unauthenticated webhooks.
+# -------------------------------------------------------------------------
+[functions.sync-dispatcher]
+verify_jwt = true
+
+[functions.sync-worker]
+verify_jwt = true
