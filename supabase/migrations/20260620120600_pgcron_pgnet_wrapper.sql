@@ -36,13 +36,20 @@ CREATE SCHEMA IF NOT EXISTS private;
 REVOKE ALL ON SCHEMA private FROM PUBLIC;
 
 -- ============================================================================
--- 3. GUCs com a service_role key + base das Edge Functions (PLACEHOLDER)
+-- 3. GUCs com a service_role key + base das Edge Functions — OUT-OF-BAND
 -- ============================================================================
--- ⚠️ Valores reais são populados out-of-band por ambiente (ops), NÃO no git.
---    Rotação: ALTER DATABASE ... + reiniciar conexões.
-ALTER DATABASE postgres SET app.service_role_key = 'set-via-ops-placeholder';
-ALTER DATABASE postgres SET app.edge_function_base =
-  'http://set-via-ops-placeholder/functions/v1';
+-- ⚠️ NÃO setamos os GUCs nesta migration: `ALTER DATABASE ... SET` exige
+--    superuser e a migration roda como um role sem essa permissão (42501).
+--    Além disso a service_role key é segredo e NÃO entra no git. Cada ambiente
+--    (ops) popula UMA VEZ, fora do git, antes de habilitar o cron:
+--
+--      ALTER DATABASE postgres SET app.service_role_key  = '<jwt-service-role>';
+--      ALTER DATABASE postgres SET app.edge_function_base =
+--        'https://<project>.supabase.co/functions/v1';
+--      -- depois: reiniciar conexões (rotação = re-ALTER + restart).
+--
+--    O wrapper abaixo lê esses GUCs em tempo de chamada (cron); se não
+--    estiverem setados, a chamada falha — esperado até o ops popular.
 
 -- ============================================================================
 -- 4. Wrapper private.invoke_edge_function

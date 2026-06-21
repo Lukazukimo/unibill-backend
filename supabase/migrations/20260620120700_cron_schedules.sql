@@ -19,31 +19,24 @@
 -- ============================================================================
 
 -- ============================================================================
--- 1. Reagendar (idempotente) os 3 jobs do P4
+-- 1. (Re)agendar os 3 jobs do P4 — idempotente por nome
 -- ============================================================================
-DO $$
-BEGIN
-  DELETE FROM cron.job
-  WHERE jobname IN (
-    'unibill-sync-dispatcher',
-    'unibill-sync-worker',
-    'cleanup-pg-net-responses'
-  );
-
-  PERFORM cron.schedule(
-    'unibill-sync-dispatcher', '* * * * *',
-    $cron$SELECT private.invoke_edge_function('sync-dispatcher')$cron$
-  );
-  PERFORM cron.schedule(
-    'unibill-sync-worker', '* * * * *',
-    $cron$SELECT private.invoke_edge_function('sync-worker')$cron$
-  );
-  PERFORM cron.schedule(
-    'cleanup-pg-net-responses', '0 5 * * *',
-    $cron$DELETE FROM net._http_response WHERE created < now() - interval '7 days'$cron$
-  );
-END
-$$;
+-- cron.schedule(jobname, schedule, command) faz UPSERT por nome (pg_cron ≥1.5):
+-- re-rodar atualiza o job existente, sem duplicar. Usamos a API de função (não
+-- DELETE FROM cron.job direto — a tabela cron.job não é acessível ao role da
+-- migration: 42501; cron.schedule é SECURITY DEFINER e roda como o owner).
+SELECT cron.schedule(
+  'unibill-sync-dispatcher', '* * * * *',
+  $cron$SELECT private.invoke_edge_function('sync-dispatcher')$cron$
+);
+SELECT cron.schedule(
+  'unibill-sync-worker', '* * * * *',
+  $cron$SELECT private.invoke_edge_function('sync-worker')$cron$
+);
+SELECT cron.schedule(
+  'cleanup-pg-net-responses', '0 5 * * *',
+  $cron$DELETE FROM net._http_response WHERE created < now() - interval '7 days'$cron$
+);
 
 -- ----------------------------------------------------------------------------
 -- Slots de cron de fases futuras (NÃO criados aqui — referência):
