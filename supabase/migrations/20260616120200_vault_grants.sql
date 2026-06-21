@@ -104,59 +104,46 @@
 
 
 -- ============================================================================
--- 1. REVOKE all current privileges on vault.* from end-user roles
+-- 1-4. Defense-in-depth GRANT/REVOKE matrix for schema `vault`
 -- ============================================================================
--- Covers `vault.secrets` (ciphertext table) and `vault.decrypted_secrets`
--- (decryption view) as they exist today. Also covers any other relations
--- the extension may have created at install time (sequences, etc — `ALL
--- TABLES` in PG covers tables AND views AND sequences in modern versions
--- when used with REVOKE).
-REVOKE ALL ON ALL TABLES    IN SCHEMA vault FROM anon, authenticated;
-REVOKE ALL ON ALL SEQUENCES IN SCHEMA vault FROM anon, authenticated;
-REVOKE ALL ON ALL FUNCTIONS IN SCHEMA vault FROM anon, authenticated;
-REVOKE ALL ON ALL ROUTINES  IN SCHEMA vault FROM anon, authenticated;
-
-
--- ============================================================================
--- 2. Pin DEFAULT privileges so future vault objects are born locked-down
--- ============================================================================
--- ALTER DEFAULT PRIVILEGES applies to objects created AFTER this statement
--- by the role specified in FOR ROLE. supabase_vault installs/upgrades run
--- as `postgres` (the migration superuser), so we scope the default to that
--- role. Any future table/sequence/function added to schema `vault` will
--- inherit these revoked defaults — closing the regression vector where a
--- vendor patch adds a new vault object and forgets to lock it down.
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault
-  REVOKE ALL ON TABLES    FROM anon, authenticated;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault
-  REVOKE ALL ON SEQUENCES FROM anon, authenticated;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault
-  REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
-
-ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault
-  REVOKE ALL ON ROUTINES  FROM anon, authenticated;
-
-
--- ============================================================================
--- 3. Strip USAGE on the schema itself from end-user roles
--- ============================================================================
--- Without USAGE on a schema, a role cannot even reference its objects, no
--- matter what per-object grants exist. This is the cheapest broadest belt.
--- The per-object REVOKEs above are the braces in case USAGE gets re-granted.
-REVOKE USAGE  ON SCHEMA vault FROM anon, authenticated;
-REVOKE CREATE ON SCHEMA vault FROM anon, authenticated;
-
-
--- ============================================================================
--- 4. Explicitly re-affirm service_role has USAGE on schema vault
--- ============================================================================
--- Supabase default already includes this, but spelling it out:
---   (a) makes the contract self-documenting (one migration to read),
---   (b) survives a future REVOKE-cascade or platform reset.
--- Idempotent (GRANT is set-union).
-GRANT USAGE ON SCHEMA vault TO service_role;
+-- (1) REVOKE current privileges on vault.* from anon/authenticated;
+-- (2) pin DEFAULT privileges so future vault objects are born locked-down;
+-- (3) strip schema USAGE/CREATE from end-user roles; (4) re-affirm
+-- service_role USAGE. Each statement runs in its own sub-block TOLERANT of
+-- `insufficient_privilege`: on Supabase postgres images where the `vault`
+-- schema/objects are owned by `supabase_admin` (not `postgres`), the migration
+-- role cannot REVOKE/ALTER them — but the platform ALREADY denies anon/
+-- authenticated any vault access there, so skipping is safe (the lockdown still
+-- holds). On images where `postgres` owns vault, every statement applies as
+-- before. See #213 (migration-validation toolchain — was an unconditional
+-- `REVOKE ... vault` that aborted `db reset` on newer images).
+DO $$
+DECLARE
+  stmt  text;
+  stmts text[] := ARRAY[
+    'REVOKE ALL ON ALL TABLES    IN SCHEMA vault FROM anon, authenticated',
+    'REVOKE ALL ON ALL SEQUENCES IN SCHEMA vault FROM anon, authenticated',
+    'REVOKE ALL ON ALL FUNCTIONS IN SCHEMA vault FROM anon, authenticated',
+    'REVOKE ALL ON ALL ROUTINES  IN SCHEMA vault FROM anon, authenticated',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault REVOKE ALL ON TABLES    FROM anon, authenticated',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault REVOKE ALL ON SEQUENCES FROM anon, authenticated',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault REVOKE ALL ON FUNCTIONS FROM anon, authenticated',
+    'ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA vault REVOKE ALL ON ROUTINES  FROM anon, authenticated',
+    'REVOKE USAGE  ON SCHEMA vault FROM anon, authenticated',
+    'REVOKE CREATE ON SCHEMA vault FROM anon, authenticated',
+    'GRANT USAGE ON SCHEMA vault TO service_role'
+  ];
+BEGIN
+  FOREACH stmt IN ARRAY stmts LOOP
+    BEGIN
+      EXECUTE stmt;
+    EXCEPTION
+      WHEN insufficient_privilege THEN
+        RAISE NOTICE 'vault grants: skipped (platform-managed vault, insufficient privilege): %', stmt;
+    END;
+  END LOOP;
+END
+$$;
 
 
 -- ============================================================================
