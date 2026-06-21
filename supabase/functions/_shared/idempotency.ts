@@ -1,39 +1,69 @@
 /**
  * idempotency.ts — deterministic-key idempotency guard.
  *
- * Ref: T-125, spec §4.2 / §4.2.1
- * Date: 2026-06-10
+ * Ref: T-317, spec §4.2.1 / §6.1
+ * Date: 2026-06-21 (replaces the T-125 stub)
  *
- * `withIdempotency()` consults a per-feature idempotency table (e.g.
- * `gmail_message_seen`, `invoice_dedup`) using `(keyField = keyValue)` and
- * skips the body if a row already exists. Otherwise it inserts the key and
- * runs the body. Implementations MUST use an upsert/ON CONFLICT pattern so
- * concurrent calls are racy-safe.
+ * `withIdempotency(table, keyField, keyValue, body)` does a fast-path SELECT for
+ * an existing row keyed `(keyField = keyValue)` and skips `body` if one is found,
+ * returning `{ skipped: true, reason: 'duplicate' }`. Otherwise it runs `body`
+ * and returns `{ skipped: false }`.
  *
- * STUB: signatures only — full implementation deferred.
+ * KEY UNIQUENESS: the fast-path SELECT matches on `keyField = keyValue` ALONE,
+ * so `keyValue` MUST be globally unique for the chosen `keyField` — not merely
+ * unique within a composite constraint. The P4 sync key satisfies this because
+ * it embeds the discriminator: `idempotency_key = connected_email_id || ':' ||
+ * minute` (see `uq_sync_runs_idempotency`). Do NOT pass a `keyField` that is
+ * only unique in combination with other columns, or this will report false
+ * duplicates across rows that share the value.
+ *
+ * RACE SAFETY: the SELECT is only a fast path. The authoritative guarantee is a
+ * UNIQUE constraint on the row that `body` writes. On the rare check-then-act
+ * race, two callers both see "no row", both run `body`, and the second `body`'s
+ * INSERT raises `23505`. This helper does NOT swallow that — `body` (or its
+ * caller) must handle the unique violation.
  */
 
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
+
 export type IdempotencyResult = {
-  /** true if the body was skipped because the key was already present. */
+  /** true if `body` was skipped because the key was already present. */
   skipped: boolean;
-  /** Optional human-readable reason (e.g. 'duplicate gmail message_id'). */
+  /** Human-readable reason when skipped (e.g. 'duplicate'). */
   reason?: string;
 };
 
-/**
- * @param table       Table name holding the dedup row (e.g. 'gmail_message_seen').
- * @param keyField    Column to match against `keyValue`.
- * @param keyValue    Caller-supplied deterministic key (hash of stable inputs).
- * @param body        Work to execute if the key is fresh.
- */
-export function withIdempotency(
-  _table: string,
-  _keyField: string,
-  _keyValue: string,
-  _body: () => Promise<void>,
+export type WithIdempotencyDeps = {
+  /** Service-role client override (tests inject a fake). */
+  client?: SupabaseClient;
+};
+
+function buildServiceClient(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL') ?? '';
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+export async function withIdempotency(
+  table: string,
+  keyField: string,
+  keyValue: string,
+  body: () => Promise<void>,
+  deps?: WithIdempotencyDeps,
 ): Promise<IdempotencyResult> {
-  return Promise.resolve({
-    skipped: false,
-    reason: 'stub: idempotency check not implemented',
-  });
+  const client = deps?.client ?? buildServiceClient();
+  const { data, error } = await client
+    .from(table)
+    .select(keyField)
+    .eq(keyField, keyValue)
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`withIdempotency: lookup on ${table}.${keyField} failed: ${error.message}`);
+  }
+  if (data) {
+    return { skipped: true, reason: 'duplicate' };
+  }
+  await body();
+  return { skipped: false };
 }

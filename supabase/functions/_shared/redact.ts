@@ -61,3 +61,27 @@ export function redactSecrets(s: string | null | undefined): string {
   }
   return out;
 }
+
+/**
+ * Recursively redacts every STRING value inside a structure (objects, arrays),
+ * leaving non-strings (numbers, booleans, null) untouched. Use this for
+ * structured sinks — log `meta` and `domain_events.payload` — instead of
+ * redacting a serialized JSON blob, which can corrupt fields (a secret pattern
+ * matching across JSON delimiters) or miss secrets hidden by JSON escaping.
+ */
+export function redactDeep<T>(value: T): T {
+  if (typeof value === 'string') {
+    return redactSecrets(value) as unknown as T;
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => redactDeep(v)) as unknown as T;
+  }
+  if (value !== null && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = redactDeep(v);
+    }
+    return out as unknown as T;
+  }
+  return value;
+}

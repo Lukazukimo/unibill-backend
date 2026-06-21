@@ -1,58 +1,98 @@
 /**
- * circuit.ts — per-resource circuit breaker.
+ * circuit.ts — per-resource circuit breaker (worker middleware).
  *
- * Ref: T-125, spec §4.2 / §4.2.1
- * Date: 2026-06-10
+ * Ref: T-318, spec §4.2 / §5.8
+ * Date: 2026-06-21 (replaces the T-125 stub)
  *
- * Reads the row keyed `(resource_type, resource_key)` from `circuit_breakers`
- * and short-circuits with `CircuitOpenError` when state == 'open'. Transitions
- * to 'half_open' happen via an atomic UPDATE with RETURNING so parallel probes
- * don't double-fire (spec §4.2).
+ * `withCircuitBreaker(resource_type, resource_key, fn)` gates `fn` behind the
+ * breaker state in `public.circuit_breakers`. Every transition is atomic and
+ * delegated to SQL functions (the supabase-js client can't express the
+ * conditional UPDATE..RETURNING flip nor counter increments):
  *
- * STUB: signatures only — full implementation deferred.
+ *   - begin → 'open'      : throw CircuitOpenError (do NOT run fn)
+ *   - begin → 'closed'    : run fn normally
+ *   - begin → 'half_open' : run fn as a probe (this caller won the atomic flip)
+ *   - fn ok               : circuit_record_success (closes after N probes)
+ *   - fn throws           : circuit_record_failure (may open), then rethrow
  */
 
+import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
 import { CircuitOpenError } from './errors.ts';
+import { log } from './logging.ts';
+import { redactSecrets } from './redact.ts';
 
-export type CircuitState = {
-  state: 'closed' | 'open' | 'half_open';
-  opened_at: Date | null;
-  next_probe_at: Date | null;
-  reopen_count: number;
-  reason: string | null;
+export type WithCircuitBreakerDeps = {
+  /** Service-role client override (tests inject a fake). */
+  client?: SupabaseClient;
+  /** Consecutive failures (closed) before opening. Default 5. */
+  threshold?: number;
+  /** Base cool-down before the first probe, seconds. Default 60. */
+  cooldownSeconds?: number;
+  /** Successful probes (half_open) needed to close. Default 2. */
+  closeAfter?: number;
 };
 
-/**
- * Returns the current circuit state for a `(resource_type, resource_key)` pair.
- * STUB: always returns a synthetic 'closed' state.
- */
-export function getCircuitState(
-  _resource_type: string,
-  _resource_key: string,
-): Promise<CircuitState> {
-  return Promise.resolve({
-    state: 'closed',
-    opened_at: null,
-    next_probe_at: null,
-    reopen_count: 0,
-    reason: null,
-  });
+function buildServiceClient(): SupabaseClient {
+  const url = Deno.env.get('SUPABASE_URL') ?? '';
+  const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+  return createClient(url, key, { auth: { persistSession: false } });
 }
 
-/**
- * Wraps an async function with the circuit breaker. Throws `CircuitOpenError`
- * if the circuit is open. On success in `half_open`, closes the circuit. On
- * failure, increments `reopen_count` and arms the next probe.
- */
 export async function withCircuitBreaker<T>(
   resource_type: string,
   resource_key: string,
   fn: () => Promise<T>,
+  deps?: WithCircuitBreakerDeps,
 ): Promise<T> {
-  const state = await getCircuitState(resource_type, resource_key);
-  if (state.state === 'open') {
-    throw new CircuitOpenError(resource_type, resource_key, state.reason);
+  const client = deps?.client ?? buildServiceClient();
+
+  const { data: decision, error: beginErr } = await client.rpc('circuit_begin', {
+    p_resource_type: resource_type,
+    p_resource_key: resource_key,
+  });
+  if (beginErr) {
+    throw new Error(
+      `withCircuitBreaker: begin failed for ${resource_type}:${resource_key}: ${beginErr.message}`,
+    );
   }
-  // STUB: no failure-counting / state mutation yet.
-  return await fn();
+  if (decision === 'open') {
+    throw new CircuitOpenError(resource_type, resource_key);
+  }
+
+  try {
+    const result = await fn();
+    // Bookkeeping is best-effort: never unwind a successful fn just because
+    // recording it failed — but DO surface the record failure, else a broken
+    // breaker (e.g. schema drift) silently degrades to a no-op that never opens.
+    const { error: recErr } = await client.rpc('circuit_record_success', {
+      p_resource_type: resource_type,
+      p_resource_key: resource_key,
+      p_close_after: deps?.closeAfter ?? 2,
+    });
+    if (recErr) {
+      log.warn('circuit_record_success failed', {
+        resource_type,
+        resource_key,
+        err: redactSecrets(recErr.message),
+      });
+    }
+    return result;
+  } catch (e) {
+    const reason = redactSecrets(e instanceof Error ? e.message : String(e));
+    const { error: recErr } = await client.rpc('circuit_record_failure', {
+      p_resource_type: resource_type,
+      p_resource_key: resource_key,
+      p_threshold: deps?.threshold ?? 5,
+      p_cooldown_seconds: deps?.cooldownSeconds ?? 60,
+      p_reason: reason,
+    });
+    if (recErr) {
+      log.warn('circuit_record_failure failed', {
+        resource_type,
+        resource_key,
+        err: redactSecrets(recErr.message),
+      });
+    }
+    throw e;
+  }
 }
