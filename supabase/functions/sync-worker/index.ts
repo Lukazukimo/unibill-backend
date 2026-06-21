@@ -47,6 +47,7 @@ import { emitDomainEvent } from '../_shared/events.ts';
 import { CircuitOpenError, RateLimitError } from '../_shared/errors.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { log } from '../_shared/logging.ts';
+import { doImapFetch as realDoImapFetch } from '../_shared/imapFetch.ts';
 
 export const EMAIL_SYNC_QUEUE = 'email_sync_queue';
 export const EMAIL_SYNC_DLQ = 'email_sync_dlq';
@@ -91,11 +92,9 @@ export type HandlerDeps = {
   doImapFetch?: ImapFetchFn;
 };
 
-const defaultDoImapFetch: ImapFetchFn = () => {
-  // Replaced by the real imapflow impl in T-326 (D-b). Until then the cron is
-  // registered but its GUCs are unpopulated, so it does not fire in prod.
-  return Promise.reject(new Error('doImapFetch not implemented yet (T-326)'));
-};
+// Production fetch = the real imapflow impl (T-326); deps.doImapFetch overrides
+// it in unit tests with a fake so the loop is testable without a network.
+const defaultDoImapFetch: ImapFetchFn = (input) => realDoImapFetch(input);
 
 function jsonResponse(status: number, body: unknown): Response {
   return new Response(JSON.stringify(body), {
