@@ -58,3 +58,29 @@ export class ChainOpenError extends Error {
     this.chain_name = chain_name;
   }
 }
+
+/** A connected_email has no active household binding (cannot route invoices). */
+export class BindingNotFoundError extends Error {
+  readonly connected_email_id: string;
+
+  constructor(connected_email_id: string) {
+    super(`no active household binding for connected_email ${connected_email_id}`);
+    this.name = 'BindingNotFoundError';
+    this.connected_email_id = connected_email_id;
+  }
+}
+
+/** Multiple active bindings but none marked is_default — target is ambiguous. */
+export class AmbiguousBindingError extends Error {
+  readonly connected_email_id: string;
+  readonly count: number;
+
+  constructor(connected_email_id: string, count: number) {
+    super(
+      `connected_email ${connected_email_id} has ${count} active household bindings but none is default`,
+    );
+    this.name = 'AmbiguousBindingError';
+    this.connected_email_id = connected_email_id;
+    this.count = count;
+  }
+}
