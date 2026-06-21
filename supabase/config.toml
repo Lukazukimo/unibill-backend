@@ -110,20 +110,20 @@ additional_redirect_urls = [
 ]
 # 1 hour access tokens; the mobile SDK refreshes silently.
 jwt_expiry = 3600
-# Rotate refresh tokens to limit blast radius of a stolen token.
-refresh_token_rotation_enabled = true
-# 1 week refresh-token lifetime (spec §9.1: "Session: 1 semana com refresh
-# token rotation"). Expressed in seconds: 7 * 24 * 3600.
-refresh_token_expiry = 604800
-# Floor for password length (spec §9.1: min 10 chars).
-password_min_length = 10
-# Character classes required in any new password. Combined with HIBP, this
-# blocks the long tail of weak-but-not-leaked passwords like "aaaaaaaaaa".
-# Each character below represents a class: lower, upper, digit, special.
-password_required_characters = "abcdefghijklmnopqrstuvwxyz:ABCDEFGHIJKLMNOPQRSTUVWXYZ:0123456789:!@#$%^&*()_+-=[]{};':\",./<>?`~"
-# HaveIBeenPwned check (spec §9.1: "HIBP check ativado no MVP").
-# Maps to GOTRUE_PASSWORD_HIBP_ENABLED=true in GoTrue.
-password_hibp_enabled = true
+# Rotate refresh tokens to limit blast radius of a stolen token (spec §9.1:
+# "Session: 1 semana com refresh token rotation"). v2 config key name.
+enable_refresh_token_rotation = true
+# Single-use refresh tokens (no reuse window) — a stolen rotated token is dead.
+refresh_token_reuse_interval = 0
+# Floor for password length (spec §9.1: min 10 chars). v2 config key name.
+minimum_password_length = 10
+# Required character classes (spec §9.1: lower+upper+digit+special). v2 takes an
+# enum (not a charset string).
+password_requirements = "lower_upper_letters_digits_symbols"
+# NOTE: refresh-token LIFETIME (spec §9.1: 1 week) and the HIBP/leaked-password
+# check (spec §9.1) have no local supabase config keys in CLI v2 — they are
+# enforced on the hosted project (Dashboard → Auth, or GOTRUE_PASSWORD_HIBP_ENABLED
+# / refresh-token TTL). Documented here so the policy isn't lost. See #213.
 
 [auth.email]
 enable_signup = true

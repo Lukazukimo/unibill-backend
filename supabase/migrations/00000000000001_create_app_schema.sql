@@ -79,7 +79,7 @@ CREATE EXTENSION IF NOT EXISTS supabase_vault;
 -- (where the extension is not available on Supabase Cloud) does not fail.
 DO $$
 BEGIN
-  CREATE EXTENSION IF NOT EXISTS pgtap;
+  CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 EXCEPTION
   WHEN feature_not_supported OR undefined_file OR insufficient_privilege THEN
     RAISE NOTICE 'pgtap not available in this environment — skipping (dev/test only).';
