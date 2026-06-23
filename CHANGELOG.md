@@ -1,5 +1,46 @@
 # Changelog
 
+## [0.1.4](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.3...v0.1.4) (2026-06-23)
+
+
+### Features
+
+* **db:** App.ingest_invoice transactional outbox for invoice capture (T-326) ([859869e](https://github.com/Lukazukimo/unibill-backend/commit/859869e14e0f02da3e942ceb89df8e0897227918))
+* **db:** Invoices + invoice_categories schema with PIX/boleto/dedupe (T-301, T-302, T-303) ([8d5ba93](https://github.com/Lukazukimo/unibill-backend/commit/8d5ba93e8c6279fa49f57f4578f976d2afafe361))
+* **db:** Invoices + invoice_categories schema, RLS & pgTAP (T-301/302/303, T-309 subset, T-328) ([db5e7e5](https://github.com/Lukazukimo/unibill-backend/commit/db5e7e5b0f6fbda097fda231c3e13fea45e7c406))
+* **db:** P4 ingestion schema — parsers, events, runs, queues, RLS, cron (T-304..T-314) ([a9d144f](https://github.com/Lukazukimo/unibill-backend/commit/a9d144f58dc540548a7b38eb79d0ce54b0ec5770))
+* **db:** RLS policies for invoices + invoice_categories (T-309 subset) ([517a6bb](https://github.com/Lukazukimo/unibill-backend/commit/517a6bb2046985b62045aa779a3ae37c8a8e9ca8))
+* **functions:** DoImapFetch — real IMAP fetch→capture + runbook (T-326, T-333, T-335) ([5148cfe](https://github.com/Lukazukimo/unibill-backend/commit/5148cfe0cfeb6c5b451e56a31649cf0d7dc62932))
+* **functions:** P4 ingestion helpers — household routing, PDF discovery, pgmq access (T-322, T-323) ([f4c68a0](https://github.com/Lukazukimo/unibill-backend/commit/f4c68a021d42e22277dbf072ca647e7e06e6fdbb))
+* **functions:** P4 ingestion helpers — household routing, PDF discovery, pgmq access (T-322, T-323) ([f8256e1](https://github.com/Lukazukimo/unibill-backend/commit/f8256e1a0110a9d6343c330edb245fe56780ebdf)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **functions:** Real P4 ingestion middleware (T-316..T-321) ([9ccf0f4](https://github.com/Lukazukimo/unibill-backend/commit/9ccf0f42d0c550dba9a5ad8094efc723d984b899))
+* **functions:** Real P4 ingestion middleware (T-316..T-321) ([446ab00](https://github.com/Lukazukimo/unibill-backend/commit/446ab00fe1081ae776c2152a34b4fba6aa35000b)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **functions:** Sync-dispatcher Edge Function (T-324) ([cbce851](https://github.com/Lukazukimo/unibill-backend/commit/cbce851a2e6b8a2608f6ab9b2ce556ce04f2af24))
+* **functions:** Sync-dispatcher Edge Function (T-324) ([e45f4e1](https://github.com/Lukazukimo/unibill-backend/commit/e45f4e107d51825b3328aa7170694ec741ee47fa)), closes [#35](https://github.com/Lukazukimo/unibill-backend/issues/35) [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **functions:** Sync-worker orchestration — loop, claim, DLQ, auto-pause (T-325, T-327) ([95ae391](https://github.com/Lukazukimo/unibill-backend/commit/95ae39174a2e0cc90457ddb3b474ed9bc56e5a5e))
+* **functions:** Sync-worker orchestration — loop, claim, DLQ, auto-pause (T-325, T-327) ([3c0c447](https://github.com/Lukazukimo/unibill-backend/commit/3c0c447de4f9d9a3c5bd338e6dad31988a12e373))
+
+
+### Bug Fixes
+
+* **db:** Break connected_emails RLS recursion, grant base privileges, guard owner takeover ([84c4df4](https://github.com/Lukazukimo/unibill-backend/commit/84c4df4f7cfb8d52555f208fbc837aa08c1997ea)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **db:** Connected_emails RLS recursion + base grants; green & CI-enforce the pgTAP suite ([1ae25f9](https://github.com/Lukazukimo/unibill-backend/commit/1ae25f9d017e0120cefbd7d450f71f52f71cbe8b))
+* **db:** Correct base32 invitation-code CHECK to exclude L (T-227) ([4dcd643](https://github.com/Lukazukimo/unibill-backend/commit/4dcd643392eaa312b7f7fd772b482db264bc02da)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **db:** Make `supabase db reset` apply migrations on the current CLI ([#213](https://github.com/Lukazukimo/unibill-backend/issues/213)) ([87614c6](https://github.com/Lukazukimo/unibill-backend/commit/87614c6a02cb2b8406ddb67c7cc2b51a983658b6))
+* **test:** Lift data-modifying CTEs to top level in pgTAP RLS suite ([215b67b](https://github.com/Lukazukimo/unibill-backend/commit/215b67bc5f111d9de1122f189d13c39a33c984e3))
+* **test:** Lift data-modifying CTEs to top level in pgTAP RLS suite (0A000) ([0e64e6f](https://github.com/Lukazukimo/unibill-backend/commit/0e64e6f198a00dabdf39e9002e17613fd9063b06))
+
+
+### Tests
+
+* **db:** Make the pgTAP suite green end-to-end ([#213](https://github.com/Lukazukimo/unibill-backend/issues/213)) ([c7f62c6](https://github.com/Lukazukimo/unibill-backend/commit/c7f62c695704f4bea935985229035c6d4a7ceeb4))
+* **db:** PgTAP cross-tenant RLS + dedupe for invoices/categories (T-328) ([849bde2](https://github.com/Lukazukimo/unibill-backend/commit/849bde2237468aa4ff5ac1af2dcd4227b86301ea))
+
+
+### CI / Tooling
+
+* **backend:** Run the real pgTAP suite in test-db, replacing the stub ([#213](https://github.com/Lukazukimo/unibill-backend/issues/213)) ([cb52421](https://github.com/Lukazukimo/unibill-backend/commit/cb52421443d1e16a7ae91176bd684f09ab4805bc))
+
 ## [0.1.3](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.2...v0.1.3) (2026-06-14)
 
 
