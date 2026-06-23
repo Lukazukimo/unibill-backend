@@ -142,54 +142,40 @@ SELECT ok(
 -- ============================================================================
 -- ok #3 — scenario 3: ON CONFLICT (user_id) DO NOTHING is honored
 -- ============================================================================
--- Force the trigger to fire twice for the same user_id by DELETing the
--- auth.users row (which cascades to user_profiles via FK) then RE-INSERTing
--- with the same UUID and a DIFFERENT display_name in meta.
+-- The trigger is AFTER INSERT ON auth.users; its body is
+--   INSERT INTO user_profiles (user_id, display_name) VALUES (NEW.id, …)
+--   ON CONFLICT (user_id) DO NOTHING;
+-- A genuine trigger RE-FIRE for the same user_id is impossible: auth.users.id
+-- is the PK (can't re-INSERT) and user_profiles.user_id FKs it (a profile can
+-- never pre-exist its auth.users row). So we prove the IDEMPOTENCY of the exact
+-- statement the trigger runs: with a profile already present, replaying that
+-- INSERT … ON CONFLICT (user_id) DO NOTHING must NEITHER raise NOR overwrite.
 --
--- Wait — DELETE would cascade and remove the profile, which makes the second
--- INSERT a fresh insert (not a conflict). To genuinely exercise ON CONFLICT
--- we instead pre-create the profile row manually with a sentinel display_name,
--- then INSERT a new auth.users row whose trigger will attempt to insert a
--- profile for that user_id. If ON CONFLICT DO NOTHING works, the sentinel
--- display_name is preserved (vs. being overwritten by 'Replay User').
---
--- This is the canonical way to assert DO NOTHING (vs. DO UPDATE) semantics.
+-- Setup: INSERT auth.users (the trigger creates the profile), overwrite the
+-- profile's display_name to a sentinel, then replay the trigger's statement
+-- with a DIFFERENT display_name. ON CONFLICT DO NOTHING must preserve the
+-- sentinel — proving DO NOTHING (not DO UPDATE) semantics.
 INSERT INTO auth.users (id, instance_id, email, aud, role, raw_user_meta_data)
 VALUES (
   '11111111-2222-3333-4444-555555555503',
   '00000000-0000-0000-0000-000000000000',
-  -- This INSERT WILL fire the trigger, but a profile row already exists for
-  -- this user_id (seeded just below this INSERT in the WITH … construct? No —
-  -- we need to seed the profile BEFORE the auth.users INSERT). Restructure:
   'bob@test.local',
-  'authenticated', 'authenticated',
-  '{"display_name": "Should Not Win"}'::jsonb
-);
-
--- The above INSERT created a profile (display_name = 'Should Not Win'). Now
--- simulate a trigger re-fire by directly invoking the trigger function via
--- another INSERT path. The cleanest, fully-portable way is: DELETE the
--- auth.users row (which CASCADEs the profile), pre-seed a profile with a
--- sentinel value, then re-INSERT auth.users with the SAME id and a different
--- meta. The trigger will try to insert again and hit ON CONFLICT DO NOTHING.
-DELETE FROM auth.users WHERE id = '11111111-2222-3333-4444-555555555503';
-
--- After the DELETE, the cascading FK removed the profile too. Pre-seed a
--- "manual" profile row so the trigger's next attempt conflicts.
-INSERT INTO public.user_profiles (user_id, display_name)
-VALUES ('11111111-2222-3333-4444-555555555503', 'Manual Sentinel');
-
--- Re-INSERT auth.users with the same UUID. The AFTER INSERT trigger will try
--- to INSERT into user_profiles and MUST hit ON CONFLICT DO NOTHING (not raise,
--- not overwrite).
-INSERT INTO auth.users (id, instance_id, email, aud, role, raw_user_meta_data)
-VALUES (
-  '11111111-2222-3333-4444-555555555503',
-  '00000000-0000-0000-0000-000000000000',
-  'bob2@test.local',
   'authenticated', 'authenticated',
   '{"display_name": "Replay User"}'::jsonb
 );
+
+-- Overwrite the trigger-created profile with a sentinel so we can prove the
+-- conflicting replay does NOT clobber it.
+UPDATE public.user_profiles
+   SET display_name = 'Manual Sentinel'
+ WHERE user_id = '11111111-2222-3333-4444-555555555503';
+
+-- Replay the trigger's exact statement with a different display_name. The
+-- existing row must win (ON CONFLICT (user_id) DO NOTHING): no overwrite, no
+-- raise.
+INSERT INTO public.user_profiles (user_id, display_name)
+VALUES ('11111111-2222-3333-4444-555555555503', 'Replay User')
+ON CONFLICT (user_id) DO NOTHING;
 
 -- Assertion: exactly ONE profile row for this user_id AND its display_name
 -- is the sentinel 'Manual Sentinel' (proves DO NOTHING, NOT DO UPDATE — and

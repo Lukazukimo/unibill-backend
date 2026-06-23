@@ -77,7 +77,7 @@ SET LOCAL search_path = public, extensions, app;
 
 -- Load the JWT claims helper into the current transaction. Defined as
 -- CREATE OR REPLACE so concurrent test runs are safe.
-\ir ../helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.psql
 
 SELECT plan(24);
 

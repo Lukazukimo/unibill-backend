@@ -82,7 +82,7 @@ BEGIN;
 
 SET LOCAL search_path = public, extensions, app;
 
-\ir ../helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.psql
 
 SELECT plan(9);
 

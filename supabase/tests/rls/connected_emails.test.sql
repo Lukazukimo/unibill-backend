@@ -102,7 +102,7 @@ BEGIN;
 SET LOCAL search_path = public, extensions, app;
 
 -- Load the JWT claims helper (defined CREATE OR REPLACE so safe to re-load).
-\ir ../helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.psql
 
 SELECT plan(11);
 

@@ -15,13 +15,16 @@
 --                   user who deletes a fatura and later re-receives it does not
 --                   hit a permanent duplicate-key wall — spec §5.3 note).
 --
---              2. uq_invoices_email_messageid_active
---                   UNIQUE (connected_email_id, source_message_id)
+--              2. idx_invoices_email_messageid  (NON-unique lookup index)
+--                   (connected_email_id, source_message_id)
 --                   WHERE deleted_at IS NULL AND source_message_id IS NOT NULL
---                 → the same IMAP message never produces two active invoices for
---                   the same credential, but NULL source_message_id rows (manual
---                   uploads, or messages without a stable Message-ID) never
---                   collide with each other.
+--                 → T-326 (migration 20260621120400) DEMOTED this from a UNIQUE
+--                   index to a plain lookup index: one IMAP message can bundle
+--                   several distinct PDFs, each a legitimate separate invoice
+--                   sharing the same source_message_id. Message-ID is therefore
+--                   NO LONGER a dedupe key; the only active-duplicate guarantee
+--                   is (household_id, file_hash) above. NULL source_message_id
+--                   rows are excluded from the index and never collide.
 --
 --              3. chk_file_hash_format  CHECK (file_hash ~ '^[a-f0-9]{64}$')
 --                 → rejects uppercase hex, non-hex characters, and wrong length.
@@ -135,10 +138,17 @@ SELECT lives_ok(
 
 
 -- ============================================================================
--- SCENARIO 3 — (connected_email_id, source_message_id) active duplicate (23505)
+-- SCENARIO 3 — multi-PDF email: same (connected_email_id, source_message_id),
+--              DIFFERENT file_hash → BOTH stay active (T-326)
 -- ============================================================================
--- The two rows use DIFFERENT file_hashes ('c...' / 'd...') so the
--- household+file_hash index cannot fire first and mask the message_id index.
+-- T-326 (migration 20260621120400) demoted the message-id index to a non-unique
+-- lookup (idx_invoices_email_messageid): one email can bundle several distinct
+-- PDFs, each a separate invoice sharing the same source_message_id. So a second
+-- active row with the same (connected_email_id, source_message_id) but a
+-- DIFFERENT file_hash must SUCCEED — dedupe is content-based only
+-- (uq_invoices_household_filehash_active). Re-adding the old message-id UNIQUE
+-- would silently drop the 2nd PDF (app.ingest_invoice uses ON CONFLICT DO
+-- NOTHING) — exactly the data-loss bug T-326 fixed.
 INSERT INTO public.invoices (
   household_id, connected_email_id, source_message_id, storage_path, file_hash
 ) VALUES (
@@ -149,7 +159,7 @@ INSERT INTO public.invoices (
   'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
 );
 
-SELECT throws_ok(
+SELECT lives_ok(
   $$INSERT INTO public.invoices (
       household_id, connected_email_id, source_message_id, storage_path, file_hash
     ) VALUES (
@@ -159,17 +169,17 @@ SELECT throws_ok(
       'household-40000001/2026-06/d.pdf',
       'dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'
     )$$,
-  '23505',
-  NULL,
-  '#3 dedupe: second ACTIVE invoice with same (connected_email_id, source_message_id) is rejected (23505)'
+  '#3 multi-PDF email: a 2nd ACTIVE invoice with the SAME (connected_email_id, source_message_id) but a DIFFERENT file_hash SUCCEEDS — message-id is no longer a unique dedupe key (T-326)'
 );
 
 
 -- ============================================================================
--- SCENARIO 4 — re-ingest same message_id after soft-delete succeeds
+-- SCENARIO 4 — same message_id, fresh file_hash after soft-delete succeeds
 -- ============================================================================
--- Soft-delete the 'c...' row from scenario 3, then re-insert the SAME message_id
--- with a fresh file_hash ('e...'): partial index excludes the soft-deleted row.
+-- Soft-delete the 'c...' row from scenario 3, then insert the SAME message_id
+-- with a fresh file_hash ('e...'). With T-326 there is no message-id uniqueness,
+-- so this is governed purely by the content dedupe (household_id, file_hash):
+-- a distinct file_hash always succeeds, soft-deleted or not.
 UPDATE public.invoices
    SET deleted_at = now()
  WHERE connected_email_id = 'ce000001-1111-1111-1111-111111111111'

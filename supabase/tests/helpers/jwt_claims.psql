@@ -1,5 +1,5 @@
 -- ============================================================================
--- Helper:    supabase/tests/helpers/jwt_claims.sql
+-- Helper:    supabase/tests/helpers/jwt_claims.psql
 -- Date:      2026-06-10
 -- Task:      T-116
 -- Purpose:   pgTAP test-suite helper that fabricates a Supabase-style JWT
@@ -45,13 +45,16 @@
 --     household membership by SELECTing `public.members WHERE user_id =
 --     auth.uid()`, not by reading any JWT claim. Tests should still pre-seed
 --     the members table accordingly.
---   * Compatible with both the standalone `psql` runner (via
---     `\i tests/helpers/jwt_claims.sql`) and `supabase test db` (which
---     concatenates files before executing).
+--   * Included by the RLS test files via `\ir ../helpers/jwt_claims.psql`.
+--     The `.psql` extension is deliberate: `supabase test db` runs
+--     `pg_prove --ext .pg --ext .sql -r` over supabase/tests/, so a `.sql`
+--     helper here would be executed as a standalone test and fail with
+--     "No plan found in TAP output". `.psql` is skipped by that glob, while
+--     `\ir` (which follows the literal path) still loads it.
 --
 -- Usage:
 --   BEGIN;
---   \i tests/helpers/jwt_claims.sql       -- once per test file, near the top
+--   \ir ../helpers/jwt_claims.psql        -- once per test file, near the top
 --   SELECT app.set_jwt_claims('<user_uuid>'::uuid, NULL, false);
 --   -- ... assertions ...
 --   SELECT app.reset_jwt_claims();
