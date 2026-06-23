@@ -229,11 +229,17 @@ Deno.test('failing sync persists a REDACTED sync_runs.error_summary, connected_e
 
   // 2) connected_emails.last_error (written via record_mailbox_error RPC p_error)
   assertEquals(f.cap.recordErrors.length, 1);
-  assertRedacted('connected_emails.last_error (record_mailbox_error.p_error)', f.cap.recordErrors[0].p_error);
+  assertRedacted(
+    'connected_emails.last_error (record_mailbox_error.p_error)',
+    f.cap.recordErrors[0].p_error,
+  );
 
   // 3) circuit_breakers failure reason (circuit_record_failure RPC p_reason)
   assertEquals(f.cap.circuitFailures.length, 1);
-  assertRedacted('circuit_breakers (circuit_record_failure.p_reason)', f.cap.circuitFailures[0].p_reason);
+  assertRedacted(
+    'circuit_breakers (circuit_record_failure.p_reason)',
+    f.cap.circuitFailures[0].p_reason,
+  );
 
   // The three sinks must agree: each is exactly redactSecrets(message).
   const expected = redactSecrets(SECRET_ERROR_MESSAGE);
