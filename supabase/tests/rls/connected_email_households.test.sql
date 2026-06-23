@@ -82,7 +82,7 @@ BEGIN;
 
 SET LOCAL search_path = public, extensions, app;
 
-\i tests/helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.sql
 
 SELECT plan(9);
 
@@ -380,9 +380,13 @@ SELECT ok(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+-- anon has NO table GRANT (only authenticated does — see migration
+-- 20260622120100); denial happens at the privilege layer (42501) before RLS.
+SELECT throws_ok(
   $$SELECT 1 FROM public.connected_email_households$$,
-  '#9 anon SELECT: anonymous caller sees zero connected_email_households rows'
+  '42501',
+  NULL,
+  '#9 anon SELECT: anonymous caller denied at the grant layer (no GRANT → 42501)'
 );
 
 

@@ -70,7 +70,9 @@
 --                    in app_password_secret because no Vault round-trip is
 --                    needed to test the RLS policies on connected_emails).
 --
--- Plan total: 10 assertions (>= 8 acceptance bar from plan).
+-- Plan total: 11 assertions (>= 8 acceptance bar from plan). #11 added with the
+-- owner-guard trigger (20260622120200): admin takeover (set owner = self) is
+-- rejected — the escalation RLS WITH CHECK alone could not stop.
 --
 -- Hermeticity:
 --   * Whole file wrapped in BEGIN / ROLLBACK.
@@ -100,9 +102,9 @@ BEGIN;
 SET LOCAL search_path = public, extensions, app;
 
 -- Load the JWT claims helper (defined CREATE OR REPLACE so safe to re-load).
-\i tests/helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.sql
 
-SELECT plan(10);
+SELECT plan(11);
 
 
 -- ============================================================================
@@ -390,18 +392,21 @@ SELECT throws_ok(
 
 
 -- ============================================================================
--- SCENARIO 9 — UPDATE retargeting owner_user_id rejected by mirrored CHECK
+-- SCENARIO 9 — admin CANNOT retarget owner_user_id (owner-guard trigger)
 -- ============================================================================
--- Admin A tries to UPDATE ce_shared to set owner_user_id = themselves while
--- the Y-binding is already soft-deleted (from scenario 7). With NO active
--- binding to A AND no other path satisfying the post-UPDATE predicate, the
--- WITH CHECK clause REJECTS the update. RLS surfaces WITH CHECK violations
--- on UPDATE as SQLSTATE '42501'.
+-- This is the privilege-escalation guard. RLS WITH CHECK alone CANNOT stop an
+-- admin of an ACTIVE binding from changing owner_user_id: the admin path
+-- (is_admin_of_connected_email) is satisfied REGARDLESS of the owner column, so
+-- the mirrored WITH CHECK passes whatever the new owner is. The BEFORE UPDATE
+-- OF owner_user_id trigger app.guard_connected_email_owner_change (migration
+-- 20260622120200) closes this: only the CURRENT owner (auth.uid() =
+-- OLD.owner_user_id) may change owner_user_id; any other authenticated caller
+-- is rejected with SQLSTATE 42501 — whether they target a third party (#9) or
+-- themselves (#11, the actual takeover). See spec §5.10.
 --
--- We re-bind A to ce_shared first (so the USING clause passes for the row
--- lookup) — otherwise the UPDATE would silently affect 0 rows via USING
--- denial, which is a different mechanism than the WITH CHECK rejection we
--- want to prove.
+-- We re-bind A to ce_shared first (active Y-binding) so A passes the UPDATE
+-- USING clause via the admin path — proving the row IS reachable and the
+-- rejection comes from the owner-guard trigger, not a silent USING filter.
 -- ============================================================================
 -- Step 1: as A, re-create a fresh binding (X-binding stays; we add a new Y
 -- binding because the old one is soft-deleted; partial unique
@@ -415,23 +420,29 @@ INSERT INTO public.connected_email_households (connected_email_id, household_id)
 VALUES ('11111111-aaaa-aaaa-aaaa-111111111111',
         'ddddddd2-2222-2222-2222-222222222222');
 
--- Step 2: as A, attempt to set owner_user_id = A and SIMULTANEOUSLY soft-delete
--- the binding via the same statement. Because RLS evaluates WITH CHECK against
--- the NEW row state, and because admin-path requires an ACTIVE binding, the
--- post-state must STILL match the predicate at row-level. Setting
--- owner_user_id=A satisfies the predicate (owner path becomes TRUE for A), so
--- this UPDATE actually SUCCEEDS — that is the spec-correct behavior (A becomes
--- the new owner). To prove rejection we instead try setting owner_user_id to a
--- THIRD party (user S, who is NOT a bound admin AND is NOT the new owner from
--- A's perspective) — A has no path to retain visibility post-UPDATE, so WITH
--- CHECK fires.
+-- Step 2a: as A (admin of an active Y-binding, NOT the owner), retarget owner to
+-- a THIRD party (user S). The owner-guard trigger rejects it (auth.uid()=A is
+-- not the current owner O) with 42501.
 SELECT throws_ok(
   $$UPDATE public.connected_emails
        SET owner_user_id = 'cccccccc-3333-3333-3333-333333333333'
      WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'$$,
   '42501',
   NULL,
-  '#9 UPDATE retargeting owner_user_id to a third party rejected by mirrored WITH CHECK (42501)'
+  '#9 admin retargeting owner_user_id to a THIRD party rejected by owner-guard trigger (42501)'
+);
+
+-- Step 2b (#11): the ACTUAL takeover — admin A sets owner_user_id = THEMSELVES.
+-- RLS WITH CHECK would PASS this (A still admins the active Y-binding), so only
+-- the owner-guard trigger stops it. This is the core escalation the trigger
+-- exists to prevent; assert it is rejected with 42501.
+SELECT throws_ok(
+  $$UPDATE public.connected_emails
+       SET owner_user_id = 'bbbbbbb2-2222-2222-2222-222222222222'
+     WHERE id = '11111111-aaaa-aaaa-aaaa-111111111111'$$,
+  '42501',
+  NULL,
+  '#11 admin takeover BLOCKED: A setting owner_user_id = self rejected by owner-guard trigger (42501)'
 );
 
 
@@ -444,9 +455,15 @@ SELECT throws_ok(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+-- anon has NO table GRANT (only authenticated does — see migration
+-- 20260622120100). The denial therefore happens at the privilege layer
+-- (permission denied, SQLSTATE 42501) BEFORE row security — strictly stronger
+-- than an RLS row-filter to zero rows. We assert that hard denial.
+SELECT throws_ok(
   $$SELECT 1 FROM public.connected_emails$$,
-  '#10 anon SELECT: anonymous caller sees zero connected_emails rows'
+  '42501',
+  NULL,
+  '#10 anon SELECT: anonymous caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
