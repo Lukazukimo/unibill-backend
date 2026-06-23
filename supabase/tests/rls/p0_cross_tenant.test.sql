@@ -77,7 +77,7 @@ SET LOCAL search_path = public, extensions, app;
 
 -- Load the JWT claims helper into the current transaction. Defined as
 -- CREATE OR REPLACE so concurrent test runs are safe.
-\i tests/helpers/jwt_claims.sql
+\ir ../helpers/jwt_claims.psql
 
 SELECT plan(24);
 
@@ -138,9 +138,9 @@ VALUES
 --    in section "household_invitations").
 INSERT INTO public.household_invitations (household_id, code, role, invited_email, created_by)
 VALUES
-  ('ccccccc1-1111-1111-1111-111111111111', 'AAAA0001', 'member',
+  ('ccccccc1-1111-1111-1111-111111111111', 'AAAA2345', 'member',
    'invitee-x@test.local', 'aaaaaaa1-1111-1111-1111-111111111111'),
-  ('ddddddd2-2222-2222-2222-222222222222', 'BBBB0002', 'member',
+  ('ddddddd2-2222-2222-2222-222222222222', 'BBBB6789', 'member',
    'invitee-y@test.local', 'bbbbbbb2-2222-2222-2222-222222222222');
 
 -- 5. app_settings — three scope flavors:
@@ -216,9 +216,12 @@ SELECT is(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+-- anon has NO table GRANT (only authenticated does — migration 20260622120100);
+-- denial is at the privilege layer (42501) before RLS — stronger than a filter.
+SELECT throws_ok(
   $$SELECT 1 FROM public.user_profiles$$,
-  '#3 user_profiles: anon caller sees zero rows'
+  '42501', NULL,
+  '#3 user_profiles: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
@@ -261,9 +264,10 @@ SELECT is(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+SELECT throws_ok(
   $$SELECT 1 FROM public.households$$,
-  '#6 households: anon caller sees zero rows'
+  '42501', NULL,
+  '#6 households: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
@@ -305,9 +309,10 @@ SELECT is(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+SELECT throws_ok(
   $$SELECT 1 FROM public.members$$,
-  '#9 members: anon caller sees zero rows'
+  '42501', NULL,
+  '#9 members: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
@@ -319,14 +324,14 @@ SELECT is_empty(
 -- redeem flow is service_role; sys admin doesn't read pending invites here).
 -- ============================================================================
 
--- #10: User A (admin of X) sees ONLY invitation AAAA0001 (X), not BBBB0002 (Y).
+-- #10: User A (admin of X) sees ONLY invitation AAAA2345 (X), not BBBB6789 (Y).
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
                           'ccccccc1-1111-1111-1111-111111111111'::uuid, false);
 
 SELECT set_eq(
   $$SELECT code FROM public.household_invitations$$,
-  ARRAY['AAAA0001'::text],
+  ARRAY['AAAA2345'::text],
   '#10 household_invitations: admin A sees ONLY own household invite (not household Y)'
 );
 
@@ -337,7 +342,7 @@ SELECT app.set_jwt_claims('aaaaaaa1-1111-1111-1111-111111111111'::uuid,
 
 WITH x AS (
      DELETE FROM public.household_invitations
-      WHERE code = 'BBBB0002'
+      WHERE code = 'BBBB6789'
       RETURNING 1
 )
 SELECT is(
@@ -350,9 +355,10 @@ SELECT is(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+SELECT throws_ok(
   $$SELECT 1 FROM public.household_invitations$$,
-  '#12 household_invitations: anon caller sees zero rows'
+  '42501', NULL,
+  '#12 household_invitations: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
@@ -445,9 +451,10 @@ SELECT is(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+SELECT throws_ok(
   $$SELECT 1 FROM public.app_settings$$,
-  '#17 app_settings: anon caller sees zero rows'
+  '42501', NULL,
+  '#17 app_settings: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 
@@ -496,9 +503,10 @@ SELECT ok(
 SELECT app.reset_jwt_claims();
 SELECT app.set_jwt_anon();
 
-SELECT is_empty(
+SELECT throws_ok(
   $$SELECT 1 FROM public.app_settings_history$$,
-  '#19 app_settings_history: anon caller sees zero rows'
+  '42501', NULL,
+  '#19 app_settings_history: anon caller denied at the grant layer (no GRANT → 42501)'
 );
 
 

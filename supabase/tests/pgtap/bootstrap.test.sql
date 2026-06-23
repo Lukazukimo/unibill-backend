@@ -144,7 +144,7 @@ BEGIN
         'user',
         target_id,
         'system',
-        NULL,
+        NULL::uuid,
         jsonb_build_object(
           'version', 1,
           'data', jsonb_build_object(
