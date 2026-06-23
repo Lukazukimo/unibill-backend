@@ -65,27 +65,6 @@ jobs:
   test-db:
     name: test-db (pgTAP)
     runs-on: ubuntu-latest
-    # Postgres service container — pgTAP runner wired in by later tasks (T-105+).
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-    env:
-      PGHOST: localhost
-      PGPORT: 5432
-      PGUSER: postgres
-      PGPASSWORD: postgres
-      PGDATABASE: postgres
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -93,14 +72,24 @@ jobs:
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to match local validation and the v2-format config.toml.
+          # The previously pinned v1 CLI cannot start this config (v2 sections
+          # like [functions.*], v2 image versions). Keep in sync with
+          # .tool-versions.
+          version: 2.107.0
 
-      # TODO(T-105+): apply migrations + run pgTAP suite.
-      # Skeleton placeholder — kept as a named job so branch protection picks it up early.
-      - name: Placeholder (apply migrations + pgTAP)
-        run: |
-          echo "test-db skeleton: actual pgTAP runner is wired in later tasks (T-105+)."
-          echo "Service postgres:15 is up at ${PGHOST}:${PGPORT}."
+      # `supabase db start` boots the local Postgres container and applies every
+      # migration in supabase/migrations/ to a virgin DB (the canonical Supabase
+      # pgTAP-CI recipe). No seed needed: the suites are hermetic (BEGIN/ROLLBACK,
+      # self-fixturing).
+      - name: Start local Postgres (applies all migrations)
+        run: supabase db start
+
+      # Runs pg_prove over supabase/tests/**. Exits non-zero on any failed
+      # assertion or non-test file, so the job fails loudly. Validated locally:
+      # Files=13, Tests=120, Result: PASS.
+      - name: Run pgTAP suite
+        run: supabase test db
 
   test-deno:
     name: test-deno (Edge Function tests)
