@@ -229,10 +229,10 @@ BEGIN
 END
 $$;
 
-SELECT like(
+SELECT alike(
   (SELECT string_agg(plan_line, E'\n') FROM _t227_explain_out),
   '%idx_invitations_active_code%',
-  'like #10: EXPLAIN of redeem query references idx_invitations_active_code'
+  'alike #10: EXPLAIN of redeem query references idx_invitations_active_code'
 );
 
 
