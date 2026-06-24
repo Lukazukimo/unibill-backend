@@ -11,12 +11,14 @@
 --            jobs themselves.
 --
 --            Expected jobs (spec §4.4 / §6.6):
---              unibill-sync-dispatcher    '* * * * *'
+--              unibill-sync-dispatcher     '* * * * *'
 --                  command → SELECT private.invoke_edge_function('sync-dispatcher')
---              unibill-sync-worker        '* * * * *'
+--              unibill-sync-worker         '* * * * *'
 --                  command → SELECT private.invoke_edge_function('sync-worker')
---              cleanup-pg-net-responses   '0 5 * * *'
+--              cleanup-pg-net-responses    '0 5 * * *'
 --                  command → DELETE FROM net._http_response WHERE created < ...
+--              unibill-extraction-worker   '* * * * *'   (T-425)
+--                  command → SELECT private.invoke_edge_function('extraction-worker')
 --
 --            Assertions:
 --              1.  exactly 1 row for jobname 'unibill-sync-dispatcher'
@@ -28,14 +30,18 @@
 --              7.  exactly 1 row for jobname 'cleanup-pg-net-responses'
 --              8.  cleanup schedule is '0 5 * * *'
 --              9.  cleanup command deletes from net._http_response
---              10. all three jobs are active
---              11. the set of unibill-relevant jobnames is EXACTLY these three
+--              10. exactly 1 row for jobname 'unibill-extraction-worker'
+--              11. extraction-worker schedule is '* * * * *'
+--              12. extraction-worker command invokes private.invoke_edge_function('extraction-worker')
+--              13. all four jobs are active
+--              14. the set of unibill-relevant jobnames is EXACTLY these four
 --                  (no missing, no extra) — guards total count / dupes together
 --
 -- Spec refs: §4.4 (cron schedules), §6.6 (job definitions).
--- Migration: 20260620120700_cron_schedules (cron.schedule UPSERT by name).
+-- Migration: 20260620120700_cron_schedules + 20260624120000_cron_extraction_worker
+--            (cron.schedule UPSERT by name).
 --
--- Plan total: 11 assertions.
+-- Plan total: 14 assertions.
 --
 -- Notes:
 --   * Wrapped in BEGIN/ROLLBACK for hygiene; this test makes NO writes — it
@@ -52,7 +58,7 @@ BEGIN;
 
 SET LOCAL search_path = public, extensions, app;
 
-SELECT plan(11);
+SELECT plan(14);
 
 
 -- ============================================================================
@@ -122,31 +128,56 @@ SELECT matches(
 
 
 -- ============================================================================
+-- unibill-extraction-worker (T-425)
+-- ============================================================================
+SELECT is(
+  (SELECT count(*) FROM cron.job WHERE jobname = 'unibill-extraction-worker'),
+  1::bigint,
+  '#10 unibill-extraction-worker: exactly one row in cron.job (no duplicates)'
+);
+
+SELECT is(
+  (SELECT schedule FROM cron.job WHERE jobname = 'unibill-extraction-worker'),
+  '* * * * *',
+  '#11 unibill-extraction-worker: schedule is every minute (* * * * *)'
+);
+
+SELECT matches(
+  (SELECT command FROM cron.job WHERE jobname = 'unibill-extraction-worker'),
+  'private\.invoke_edge_function\(''extraction-worker''\)',
+  '#12 unibill-extraction-worker: command invokes private.invoke_edge_function(''extraction-worker'')'
+);
+
+
+-- ============================================================================
 -- Cross-cutting invariants
 -- ============================================================================
--- All three jobs must be enabled, otherwise they are registered but inert.
+-- All four jobs must be enabled, otherwise they are registered but inert.
 SELECT is(
   (SELECT count(*) FROM cron.job
      WHERE jobname IN ('unibill-sync-dispatcher',
                        'unibill-sync-worker',
-                       'cleanup-pg-net-responses')
+                       'cleanup-pg-net-responses',
+                       'unibill-extraction-worker')
        AND active),
-  3::bigint,
-  '#10 all three unibill cron jobs are active (active = true)'
+  4::bigint,
+  '#13 all four unibill cron jobs are active (active = true)'
 );
 
--- The set of unibill-relevant jobnames is EXACTLY these three. Scoping the LHS
+-- The set of unibill-relevant jobnames is EXACTLY these four. Scoping the LHS
 -- to the known names keeps the test robust to unrelated platform jobs while
--- still proving none of the three is missing or duplicated.
+-- still proving none of the four is missing or duplicated.
 SELECT set_eq(
   $$SELECT jobname FROM cron.job
      WHERE jobname IN ('unibill-sync-dispatcher',
                        'unibill-sync-worker',
-                       'cleanup-pg-net-responses')$$,
+                       'cleanup-pg-net-responses',
+                       'unibill-extraction-worker')$$,
   ARRAY['unibill-sync-dispatcher',
         'unibill-sync-worker',
-        'cleanup-pg-net-responses'],
-  '#11 cron.job contains exactly the three expected unibill jobnames, once each'
+        'cleanup-pg-net-responses',
+        'unibill-extraction-worker'],
+  '#14 cron.job contains exactly the four expected unibill jobnames, once each'
 );
 
 
