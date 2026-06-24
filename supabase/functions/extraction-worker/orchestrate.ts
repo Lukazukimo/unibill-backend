@@ -123,7 +123,10 @@ export async function orchestrate(
   const thresholds = deps.confidenceThresholds ?? DEFAULT_THRESHOLDS;
 
   // --- Layer 1: native pdfjs text -----------------------------------------
-  const l1 = await doLayer1(input.pdfBytes, deps.layer1Thresholds);
+  // pdfjs' getDocument DETACHES the ArrayBuffer it is handed, so pass Layer 1 a
+  // copy — otherwise the original is emptied and a Layer 2 (OCR) re-read of the
+  // same bytes fails with "bad %PDF magic".
+  const l1 = await doLayer1(input.pdfBytes.slice(), deps.layer1Thresholds);
 
   // --- Layer 2: OCR when the native text is insufficient ------------------
   let layer2Ran = false;
