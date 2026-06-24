@@ -23,12 +23,10 @@
  *
  * Spec: §6.5 ("Vault decrypt — redação obrigatória de secrets em logs", last ¶).
  *
- * GAP (asserted explicitly in the 3rd test, NOT silently): redact.ts does NOT
- * currently implement Brazilian CPF/CNPJ patterns. The issue acceptance text
- * lists CPF/CNPJ, but the code does not redact them, so we MUST NOT assert they
- * are absent (that assertion would fail against real behavior). Instead we pin
- * the current behavior so the gap is visible and a follow-up that adds CPF/CNPJ
- * patterns will flip this guard and force this test to be updated.
+ * Brazilian CPF/CNPJ tax IDs are redacted too (T-315 added the patterns to
+ * redact.ts): they are part of IMPLEMENTED_SECRETS below — so they are asserted
+ * absent from every failure-path sink — and the 3rd test pins the redaction
+ * directly (raw CPF/CNPJ gone, [REDACTED_CPF]/[REDACTED_CNPJ] present).
  *
  * Ref: T-331; depends on T-315 (#23), T-321 (#32), T-325 (#36). Date: 2026-06-22
  */
@@ -49,7 +47,7 @@ const IMAP_LOGIN = `LOGIN user@example.com ${LOGIN_PW}`;
 const BEARER_TOKEN = 'eyJhbGciOiJIUzI1NiJ9.PAYLOADSEGMENT01.SIGNATURESEG02';
 const BEARER_HEADER = `Authorization: Bearer ${BEARER_TOKEN}`;
 
-// -- Patterns redact.ts does NOT (yet) implement — see GAP note in the header.
+// -- Brazilian tax IDs (PII) — redact.ts redacts these since T-315.
 const CPF = '529.982.247-25';
 const CNPJ = '11.222.333/0001-81';
 
@@ -64,6 +62,8 @@ const IMPLEMENTED_SECRETS: ReadonlyArray<[string, string]> = [
   ['app password (16-char block)', APP_PW_BLOCK],
   ['IMAP LOGIN password', LOGIN_PW],
   ['Bearer token', BEARER_TOKEN],
+  ['CPF', CPF],
+  ['CNPJ', CNPJ],
 ];
 
 /** A faithful, minimal fake of the supabase-js surface the worker calls. */
@@ -265,18 +265,14 @@ Deno.test('auto-pause domain_events payload carries none of the seeded secrets',
   }
 });
 
-Deno.test('GAP: CPF/CNPJ are NOT redacted by redact.ts today (guard so a future fix updates this test)', () => {
-  // redact.ts has no Brazilian CPF/CNPJ pattern (T-315 scope). We pin the
-  // CURRENT behavior rather than assert a behavior that is not implemented:
-  // if/when CPF/CNPJ patterns are added, these assertions flip and force this
-  // test — and the secret list above — to be updated. See header GAP note.
+Deno.test('CPF/CNPJ are redacted by redact.ts (T-315) — raw gone, markers present', () => {
+  // T-315 added Brazilian CPF/CNPJ patterns to redact.ts. Pin the redaction
+  // directly: the raw tax IDs must not survive, and each is masked with its
+  // own marker. (Their absence in the persisted sinks is covered above via
+  // IMPLEMENTED_SECRETS.)
   const redacted = redactSecrets(SECRET_ERROR_MESSAGE);
-  assert(
-    redacted.includes(CPF),
-    'CPF unexpectedly redacted — redact.ts gained a CPF pattern; promote CPF to IMPLEMENTED_SECRETS and assert its absence in the sinks.',
-  );
-  assert(
-    redacted.includes(CNPJ),
-    'CNPJ unexpectedly redacted — redact.ts gained a CNPJ pattern; promote CNPJ to IMPLEMENTED_SECRETS and assert its absence in the sinks.',
-  );
+  assert(!redacted.includes(CPF), 'raw CPF must not survive redactSecrets');
+  assert(!redacted.includes(CNPJ), 'raw CNPJ must not survive redactSecrets');
+  assertStringIncludes(redacted, '[REDACTED_CPF]');
+  assertStringIncludes(redacted, '[REDACTED_CNPJ]');
 });
