@@ -8,11 +8,14 @@ import { ChainOpenError } from './errors.ts';
 import { OcrHttpError } from './ocr/classify_error.ts';
 import { type ChainBreakerDeps, type CircuitDecision, withChainBreaker } from './chain_breaker.ts';
 
-function harness(decision: CircuitDecision) {
+/** `postState` is what readState returns after recordSuccess (only consulted on
+ *  a half_open decision — the OPEN→CLOSED edge detection for T-421). */
+function harness(decision: CircuitDecision, postState: CircuitDecision = 'half_open') {
   const calls = {
     success: 0,
     failures: [] as Array<{ threshold: number; cooldownSec: number; reason: string }>,
     beginSeen: 0,
+    chainClosed: 0,
   };
   const deps: ChainBreakerDeps = {
     begin: () => {
@@ -25,6 +28,11 @@ function harness(decision: CircuitDecision) {
     },
     recordFailure: (_t, _k, o) => {
       calls.failures.push(o);
+      return Promise.resolve();
+    },
+    readState: () => Promise.resolve(postState),
+    onChainClosed: () => {
+      calls.chainClosed++;
       return Promise.resolve();
     },
   };
@@ -60,8 +68,8 @@ Deno.test('closed + success → recordSuccess; fn receives the chain state', asy
   assertEquals(calls.failures.length, 0);
 });
 
-Deno.test('half_open + success → recordSuccess (probe); fn sees half_open', async () => {
-  const { deps, calls } = harness('half_open');
+Deno.test('half_open + success but still probing (not closed) → no onChainClosed', async () => {
+  const { deps, calls } = harness('half_open', 'half_open');
   let seenState: CircuitDecision | null = null;
   await withChainBreaker('ai_chain', 'k', (state) => {
     seenState = state;
@@ -69,6 +77,20 @@ Deno.test('half_open + success → recordSuccess (probe); fn sees half_open', as
   }, deps);
   assertEquals(seenState, 'half_open');
   assertEquals(calls.success, 1);
+  assertEquals(calls.chainClosed, 0); // probe succeeded but chain not yet closed
+});
+
+Deno.test('half_open probe that CLOSES the chain → onChainClosed fires once (T-421)', async () => {
+  const { deps, calls } = harness('half_open', 'closed');
+  await withChainBreaker('ai_chain', 'k', () => Promise.resolve('ok'), deps);
+  assertEquals(calls.success, 1);
+  assertEquals(calls.chainClosed, 1);
+});
+
+Deno.test('closed decision never consults the close edge (no onChainClosed)', async () => {
+  const { deps, calls } = harness('closed', 'closed');
+  await withChainBreaker('ai_chain', 'k', () => Promise.resolve('ok'), deps);
+  assertEquals(calls.chainClosed, 0);
 });
 
 Deno.test('closed + normal failure → recordFailure with the minSamples threshold', async () => {
