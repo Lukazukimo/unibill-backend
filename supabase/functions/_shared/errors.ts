@@ -84,3 +84,16 @@ export class AmbiguousBindingError extends Error {
     this.count = count;
   }
 }
+
+/** A page splitter was asked for a page number outside [1, pageCount]. */
+export class PageNotFoundError extends Error {
+  readonly page: number;
+  readonly pageCount: number;
+
+  constructor(page: number, pageCount: number) {
+    super(`page ${page} out of range (PDF has ${pageCount} page(s))`);
+    this.name = 'PageNotFoundError';
+    this.page = page;
+    this.pageCount = pageCount;
+  }
+}
