@@ -2,12 +2,14 @@
  * redact.ts — defensive secret redaction for log lines.
  *
  * Ref: T-125 (initial set) + T-230 (Gmail app password + IMAP LOGIN patterns)
+ *      + T-315 (Brazilian CPF/CNPJ tax IDs + wrapRedaction helper)
  * Spec: §6.5 "Vault decrypt — redação obrigatória de secrets em logs"
  * Date: 2026-06-10
  *
  * Scrubs OAuth tokens, JWTs, API keys, bearer headers, Gmail app passwords
- * (16 lowercase chars, optionally formatted with spaces) and raw IMAP LOGIN
- * command echoes from strings before they reach stdout / DB error columns.
+ * (16 lowercase chars, optionally formatted with spaces), raw IMAP LOGIN
+ * command echoes, and Brazilian tax IDs (CPF/CNPJ, PII) from strings before
+ * they reach stdout / DB error columns.
  *
  * Pattern-based — meant as a safety net, NOT a substitute for never logging
  * the field in the first place. Used by:
@@ -51,6 +53,15 @@ const SECRET_PATTERNS: Array<{ re: RegExp; replacement: string }> = [
     re: /eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}/g,
     replacement: '[REDACTED_JWT]',
   },
+
+  // -- Brazilian tax IDs (PII — spec §6.5). CNPJ (14 digits) FIRST so the
+  //    longer id is consumed before the 11-digit CPF pattern. `\b` on both ends
+  //    so a longer digit run — e.g. a 44/47-digit boleto barcode (invoices
+  //    "linha digitável") — is NOT partially eaten (no word boundary mid-digit).
+  //    Punctuation optional: catches both 11.222.333/0001-81 and bare
+  //    11222333000181 (and 529.982.247-25 / 52998224725 for CPF).
+  { re: /\b\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2}\b/g, replacement: '[REDACTED_CNPJ]' },
+  { re: /\b\d{3}\.?\d{3}\.?\d{3}-?\d{2}\b/g, replacement: '[REDACTED_CPF]' },
 ];
 
 export function redactSecrets(s: string | null | undefined): string {
@@ -60,6 +71,29 @@ export function redactSecrets(s: string | null | undefined): string {
     out = out.replace(re, replacement);
   }
   return out;
+}
+
+/**
+ * Safely stringifies an unknown thrown value and redacts secrets from it.
+ * Use at catch sites instead of hand-writing
+ * `redactSecrets(e instanceof Error ? e.message : String(e))`.
+ *
+ * Never throws: for non-Error values it falls back to `String(err)`, and if even
+ * that throws (e.g. an object with a poisoned `toString`) it returns a constant.
+ * Uses `err.message` (not `err.stack`) for Errors, matching every call site.
+ */
+export function wrapRedaction(err: unknown): string {
+  let raw: string;
+  if (err instanceof Error) {
+    raw = err.message;
+  } else {
+    try {
+      raw = String(err);
+    } catch {
+      raw = '[unstringifiable error]';
+    }
+  }
+  return redactSecrets(raw);
 }
 
 /**
