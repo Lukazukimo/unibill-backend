@@ -29,9 +29,16 @@
 import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
 import { ChainOpenError } from './errors.ts';
 import { classifyOcrError } from './ocr/classify_error.ts';
+import { emitDomainEvent } from './events.ts';
 
 export type ChainResourceType = 'ai_chain' | 'ocr_chain';
 export type CircuitDecision = 'open' | 'closed' | 'half_open';
+
+/** needs_review_reason values eligible for chain-recovery replay (T-421). */
+export const CHAIN_REPLAY_REASONS = ['ai_chain_open', 'ocr_chain_open'] as const;
+
+/** Sentinel aggregate_id for chain-scoped (non-entity) domain events. */
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
 
 export interface ChainBreakerConfig {
   minSamples: number; // *.chain.min_samples — consecutive failures → open
@@ -56,6 +63,10 @@ export interface ChainBreakerDeps {
     key: string,
     opts: { threshold: number; cooldownSec: number; reason: string },
   ) => Promise<void>;
+  /** Reads the breaker's current state — used to detect the OPEN→CLOSED edge. */
+  readState?: (type: ChainResourceType, key: string) => Promise<CircuitDecision>;
+  /** Fired exactly on a half-open probe that closes the chain (T-421 replay). */
+  onChainClosed?: (type: ChainResourceType, key: string) => Promise<void>;
 }
 
 function buildServiceClient(): SupabaseClient {
@@ -113,6 +124,36 @@ export async function withChainBreaker<T>(
       });
     });
 
+  const readState = deps?.readState ??
+    (async (type: ChainResourceType, key: string) => {
+      const { data } = await (client ?? buildServiceClient())
+        .from('circuit_breakers')
+        .select('state')
+        .eq('resource_type', type)
+        .eq('resource_key', key)
+        .maybeSingle();
+      return (data as { state?: CircuitDecision } | null)?.state ?? 'closed';
+    });
+
+  // Default: on the OPEN→CLOSED edge, count replayable invoices and announce
+  // them via ai.chain.replay_available (chain-scoped event, nil aggregate_id).
+  const onChainClosed = deps?.onChainClosed ??
+    (async (type: ChainResourceType, _key: string) => {
+      const c = client ?? buildServiceClient();
+      const { count } = await c
+        .from('invoices')
+        .select('*', { count: 'exact', head: true })
+        .in('needs_review_reason', [...CHAIN_REPLAY_REASONS])
+        .is('deleted_at', null);
+      await emitDomainEvent({
+        type: 'ai.chain.replay_available',
+        aggregate_type: type,
+        aggregate_id: NIL_UUID,
+        actor_type: 'system',
+        payload: { version: 1, data: { chain_name: type, eligible_count: count ?? 0 } },
+      }, { client: c });
+    });
+
   const decision = await begin(chainType, chainKey);
   if (decision === 'open') {
     throw new ChainOpenError(chainKey);
@@ -121,6 +162,12 @@ export async function withChainBreaker<T>(
   try {
     const result = await fn(decision);
     await recordSuccess(chainType, chainKey);
+    // A half-open probe that succeeds may be the Nth one that CLOSES the chain.
+    // On that edge only, surface the replayable backlog (best-effort — the
+    // replay notification must never unwind the extraction it rode in on).
+    if (decision === 'half_open' && (await readState(chainType, chainKey)) === 'closed') {
+      await onChainClosed(chainType, chainKey).catch(() => {});
+    }
     return result;
   } catch (err) {
     const cls = classifyOcrError(err);
