@@ -44,3 +44,44 @@ Deno.test('withCorrelation injects a context with a correlation_id', async () =>
   assertEquals(res.status, 200);
   assertIsUuid(observedId);
 });
+
+Deno.test('withCorrelation emits x-correlation-id on the response (generated id)', async () => {
+  let observedId: string | null = null;
+  const handler = withCorrelation((ctx, _req) => {
+    observedId = ctx.correlation_id;
+    return Promise.resolve(new Response('ok'));
+  });
+
+  const res = await handler(makeRequest());
+  assertEquals(res.status, 200);
+  assertEquals(await res.text(), 'ok'); // body preserved
+  const header = res.headers.get('x-correlation-id');
+  assertIsUuid(header);
+  assertEquals(header, observedId); // response header === ctx id
+});
+
+Deno.test('withCorrelation echoes the inbound x-correlation-id on the response', async () => {
+  const inbound = '11111111-2222-4333-8444-555555555555';
+  const handler = withCorrelation((_ctx, _req) => Promise.resolve(new Response('ok')));
+
+  const res = await handler(makeRequest('https://example.test/fn', {
+    headers: { 'x-correlation-id': inbound },
+  }));
+  assertEquals(res.headers.get('x-correlation-id'), inbound);
+});
+
+Deno.test('withCorrelation preserves handler status + content-type when adding the header', async () => {
+  const handler = withCorrelation((_ctx, _req) =>
+    Promise.resolve(
+      new Response(JSON.stringify({ ok: true }), {
+        status: 201,
+        headers: { 'content-type': 'application/json' },
+      }),
+    )
+  );
+
+  const res = await handler(makeRequest());
+  assertEquals(res.status, 201);
+  assertEquals(res.headers.get('content-type'), 'application/json');
+  assertIsUuid(res.headers.get('x-correlation-id'));
+});
