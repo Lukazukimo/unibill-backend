@@ -62,7 +62,24 @@ function messageOf(err: unknown): string {
 const QUOTA_RE = /quota|insufficient_quota|exceeded/i;
 const TIMEOUT_RE = /ETIMEDOUT|timed?\s*out|deadline/i;
 
-/** PURE + TOTAL. Classify a thrown value from an OCR provider call. */
+/**
+ * PURE + TOTAL. Classify a thrown value from an OCR/AI provider call.
+ *
+ * The §7.5.1 failure→status table (the canonical contract, exhaustively covered
+ * by classify_error_spec_table.test.ts in this dir and ../ai/):
+ *
+ *   input                                   | status           | provider | chain | immediate
+ *   ----------------------------------------+------------------+----------+-------+----------
+ *   CircuitOpenError (provider already open) | circuit_open     |   no     |  yes  |   —
+ *   RateLimitError / HTTP 429                | rate_limited     |   yes    |  yes  |   —
+ *   HTTP 402 / quota in msg or body          | quota_exceeded   |   yes    |  yes  |  YES (§7.6 B)
+ *   OcrTimeoutError / AbortError / "timeout" | timeout          |   yes    |  yes  |   —
+ *   OcrInvalidResponseError (2xx unparseable)| invalid_response |   no     |  yes  |   —
+ *   5xx / other 4xx / unknown / non-Error    | error            |   yes    |  yes  |   —
+ *
+ * provider = counts toward the per-provider breaker; chain = counts toward the
+ * chain breaker; immediate = opens the chain on first occurrence (Trigger B).
+ */
 export function classifyOcrError(err: unknown): OcrErrorClassification {
   // 1. Per-provider breaker already open → don't double-count the provider.
   if (err instanceof CircuitOpenError) {
