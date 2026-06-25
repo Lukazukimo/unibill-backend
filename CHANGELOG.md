@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.1.7](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.6...v0.1.7) (2026-06-25)
+
+
+### Features
+
+* **lgpd:** Anonymize_user_references + drop audit FKs (T-606) ([0c5617d](https://github.com/Lukazukimo/unibill-backend/commit/0c5617dba987220eba85f7367fe53557b42f82db))
+* **lgpd:** Anonymize_user_references + drop audit FKs to auth.users (T-606) ([ecdfda6](https://github.com/Lukazukimo/unibill-backend/commit/ecdfda676be8d738b6ecc533768d69ce6005ead8)), closes [#116](https://github.com/Lukazukimo/unibill-backend/issues/116)
+* **lgpd:** Consent_log retention cron — IP mask + UA hash + hard ceiling (T-610) ([e107e74](https://github.com/Lukazukimo/unibill-backend/commit/e107e740f3904b6dafe642982eb24ffaa06cbcf6))
+* **lgpd:** Consent_log retention cron — IP mask + UA hash + hard ceiling (T-610) ([df61b59](https://github.com/Lukazukimo/unibill-backend/commit/df61b59c1659f8dbd7435c7487694f63be284984)), closes [#120](https://github.com/Lukazukimo/unibill-backend/issues/120)
+* **lgpd:** Delete-my-account Edge Function (T-609) ([d88b86a](https://github.com/Lukazukimo/unibill-backend/commit/d88b86a19536361600b22e1a4e7a7e37c9523367))
+* **lgpd:** Delete-my-account Edge Function (T-609) ([0d5f5de](https://github.com/Lukazukimo/unibill-backend/commit/0d5f5de62e78b8056f94d829e7eb52d3310384f2)), closes [#119](https://github.com/Lukazukimo/unibill-backend/issues/119)
+* **lgpd:** Export-my-data Edge Function + private-exports bucket (T-608) ([f16165c](https://github.com/Lukazukimo/unibill-backend/commit/f16165c61938953bb53120a3fb50f02d70de964e))
+* **lgpd:** Export-my-data Edge Function + private-exports bucket (T-608) ([b0472c0](https://github.com/Lukazukimo/unibill-backend/commit/b0472c05604be81acea50a06f15f1cbf7459c8cf)), closes [#118](https://github.com/Lukazukimo/unibill-backend/issues/118)
+
+
+### Tests
+
+* **lgpd:** Anonymize pgTAP + auth.users FK coverage guard (T-607) ([0771e6a](https://github.com/Lukazukimo/unibill-backend/commit/0771e6a1aa0643ac19cbf22fcde0cd491305e80f))
+* **lgpd:** Anonymize_user_references pgTAP + auth.users FK coverage guard (T-607) ([5fc0882](https://github.com/Lukazukimo/unibill-backend/commit/5fc088270d0890b59d8cced6b76ec5535c27b909)), closes [#117](https://github.com/Lukazukimo/unibill-backend/issues/117)
+
 ## [0.1.6](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.5...v0.1.6) (2026-06-25)
 
 
