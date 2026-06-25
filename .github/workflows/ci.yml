@@ -110,12 +110,36 @@ jobs:
           # before tests run, avoiding mid-test resolution failures.
           deno install || true
 
-      # TODO(T-125+): real tests land alongside _shared/ scaffolding.
-      - name: Run Deno tests (skeleton)
+      - name: Run Deno tests with coverage
         run: |
-          mkdir -p coverage
-          if [ -d supabase/functions ] && find supabase/functions -name '*.test.ts' | grep -q .; then
-            deno test --allow-all --coverage=coverage
+          rm -rf coverage && mkdir -p coverage
+          deno test --allow-all --coverage=coverage supabase/functions/
+
+      # Publish coverage as an artifact + a run-summary table (T-617 / §12.4).
+      # Reporting only — NOT a hard gate: a global threshold on this required
+      # check would block merges on any dip; reviewers use the artifact instead.
+      - name: Coverage report + summary
+        if: always()
+        env:
+          NO_COLOR: '1'
+        run: |
+          set -euo pipefail
+          if [ -n "$(ls -A coverage 2>/dev/null)" ]; then
+            deno coverage coverage --lcov --output=coverage.lcov
+            {
+              echo "## Deno coverage (§12.4 — reporting only)"
+              echo '```'
+              deno coverage coverage | tail -n 80
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "test-deno skeleton: no *.test.ts files yet (added in T-125+)."
+            echo "test-deno: no coverage profiles produced." >> "$GITHUB_STEP_SUMMARY"
           fi
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: deno-coverage
+          path: coverage.lcov
+          if-no-files-found: warn
