@@ -1,5 +1,79 @@
 # Changelog
 
+## [0.1.5](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.4...v0.1.5) (2026-06-25)
+
+
+### Features
+
+* **admin:** Chain-recovery replay endpoint POST /admin/replay-chain ([09030a8](https://github.com/Lukazukimo/unibill-backend/commit/09030a8c806ec85f0738b7c66e6bf9246c8b3f99)), closes [#68](https://github.com/Lukazukimo/unibill-backend/issues/68)
+* **admin:** P5 slice F1 — re-extract endpoint ([84166ba](https://github.com/Lukazukimo/unibill-backend/commit/84166baf84bfaac272318980238342cbf19f0dce))
+* **admin:** Re-extract endpoint POST /admin/invoices/:id/reextract ([be7a68a](https://github.com/Lukazukimo/unibill-backend/commit/be7a68ac627c4e93bfed6f238414272ca77dd1d6)), closes [#67](https://github.com/Lukazukimo/unibill-backend/issues/67)
+* **db:** Create the ai_calls observability table (T-401) ([1e41884](https://github.com/Lukazukimo/unibill-backend/commit/1e41884302bfef1dc2704df7497dfc09ef54c7a5)), closes [#47](https://github.com/Lukazukimo/unibill-backend/issues/47)
+* **extraction:** 4-layer extraction cascade orchestrator ([349d8e6](https://github.com/Lukazukimo/unibill-backend/commit/349d8e6a847d2aa5dfae1ecbe4e2db7a554a63d0)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65)
+* **extraction:** AI extraction provider chain (createAiClient) ([d2b0dba](https://github.com/Lukazukimo/unibill-backend/commit/d2b0dba8c1d3dd7e0c94b67d7ffa8c9ba355bc06)), closes [#63](https://github.com/Lukazukimo/unibill-backend/issues/63)
+* **extraction:** Announce replayable backlog when the chain breaker closes ([a019698](https://github.com/Lukazukimo/unibill-backend/commit/a019698c4f3db350eff11a0ef8efbcef387481a2)), closes [#68](https://github.com/Lukazukimo/unibill-backend/issues/68)
+* **extraction:** Chain-level circuit breaker for the OCR/AI provider chains ([d7f6510](https://github.com/Lukazukimo/unibill-backend/commit/d7f6510fc947bafba9cd6f40c95d62e214c78b77)), closes [#60](https://github.com/Lukazukimo/unibill-backend/issues/60)
+* **extraction:** Extracted_payload v1 contract + invoices writer mapper ([08ac070](https://github.com/Lukazukimo/unibill-backend/commit/08ac070f9e067cde1ec867e9eefa7b267d65d578)), closes [#75](https://github.com/Lukazukimo/unibill-backend/issues/75)
+* **extraction:** Extraction-worker shell — pgmq consumer + persist + events ([d94a002](https://github.com/Lukazukimo/unibill-backend/commit/d94a0024d061443e20da906b37a14deb4346c242)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65)
+* **extraction:** P5 close-out — Vault setup for provider API keys + redaction (T-403) ([9b87d29](https://github.com/Lukazukimo/unibill-backend/commit/9b87d29f894d594521aca1741f8b8a4f9db03f51))
+* **extraction:** P5 slice D2 — AI chain + chain-level breaker ([dcd78a7](https://github.com/Lukazukimo/unibill-backend/commit/dcd78a74b40918b2ece4f4ef6515480a3ba86363))
+* **extraction:** P5 slice E1 — extracted_payload v1 contract + invoices writer ([0839cfb](https://github.com/Lukazukimo/unibill-backend/commit/0839cfbe18db0fa32e8e8dd05352e57b7bab0f8e))
+* **extraction:** P5 slice E2 — 4-layer cascade orchestrator ([cff916b](https://github.com/Lukazukimo/unibill-backend/commit/cff916b1615f7d8e6e1f1b3e2890fff5fe80437b))
+* **extraction:** P5 slice E3a — extraction-worker shell + cron ([21c4517](https://github.com/Lukazukimo/unibill-backend/commit/21c45178c166fa118f8ac102933c5047f8f6da4d))
+* **extraction:** P5 slice F2 — chain-recovery replay (event + admin endpoint) ([533fc23](https://github.com/Lukazukimo/unibill-backend/commit/533fc236ef3646addbd499b2442623230a6f5945))
+* **extraction:** Schedule unibill-extraction-worker cron (1 min) ([77d1693](https://github.com/Lukazukimo/unibill-backend/commit/77d16930ddfdeb02d23d28cd23b39a1b8a1b408b)), closes [#71](https://github.com/Lukazukimo/unibill-backend/issues/71)
+* **extraction:** Vault setup for provider API keys + redaction (T-403) ([e4dfcb2](https://github.com/Lukazukimo/unibill-backend/commit/e4dfcb21b3c954bf830a5f453544f41f733b0f86)), closes [#49](https://github.com/Lukazukimo/unibill-backend/issues/49)
+* **functions:** AI extraction contract + schema + GeminiProvider (T-412) ([ba55d25](https://github.com/Lukazukimo/unibill-backend/commit/ba55d252369338b3fcd1c6f56d794869090cbec6)), closes [#58](https://github.com/Lukazukimo/unibill-backend/issues/58)
+* **functions:** Deterministic confidence formula + status mapper (T-417) ([14b48fe](https://github.com/Lukazukimo/unibill-backend/commit/14b48fe75c2c155e73755bdb54b28e52ec09bbee)), closes [#64](https://github.com/Lukazukimo/unibill-backend/issues/64)
+* **functions:** Emit x-correlation-id on the response in withCorrelation (T-316) ([d92b205](https://github.com/Lukazukimo/unibill-backend/commit/d92b20546395dfba92281a2d7e12b9b8f199b36f)), closes [#27](https://github.com/Lukazukimo/unibill-backend/issues/27)
+* **functions:** Finish P4 partials — CPF/CNPJ redaction, correlation header, sync_runs RLS (T-315/T-316/T-309) ([a7de43e](https://github.com/Lukazukimo/unibill-backend/commit/a7de43ef8e8ff14d1063809e1c9dbd92d9e79174))
+* **functions:** GoogleVisionProvider (fallback OCR provider) (T-408) ([655479b](https://github.com/Lukazukimo/unibill-backend/commit/655479b5206177f3e5b4635fa3bd7cb4e2e4fdcb)), closes [#53](https://github.com/Lukazukimo/unibill-backend/issues/53)
+* **functions:** Groq + OpenRouter providers + prompt registry (T-413, T-414) ([2c36536](https://github.com/Lukazukimo/unibill-backend/commit/2c365363fb91ad17c0629aea73820660222b86d0)), closes [#59](https://github.com/Lukazukimo/unibill-backend/issues/59) [#62](https://github.com/Lukazukimo/unibill-backend/issues/62)
+* **functions:** Layer 1 — pdfjs native PDF text extraction (T-404) ([eb730cb](https://github.com/Lukazukimo/unibill-backend/commit/eb730cb0d0cb17ed2539dc4990633a44dab3479f)), closes [#50](https://github.com/Lukazukimo/unibill-backend/issues/50)
+* **functions:** Layer 2 orchestrator with per-page OCR early-exit (T-410) ([c8eb331](https://github.com/Lukazukimo/unibill-backend/commit/c8eb3319e8a4b63190715e50ebb73b1454c82fa7)), closes [#56](https://github.com/Lukazukimo/unibill-backend/issues/56)
+* **functions:** Layer 3 — regex per-utility field extraction (T-411) ([d846c56](https://github.com/Lukazukimo/unibill-backend/commit/d846c567da4876f8207b42e2f6fb554a9817eaf4)), closes [#57](https://github.com/Lukazukimo/unibill-backend/issues/57)
+* **functions:** OCR provider contract + classifyOcrError (T-406) ([398acf8](https://github.com/Lukazukimo/unibill-backend/commit/398acf86af12164e17fdc9df382d97093e015335)), closes [#52](https://github.com/Lukazukimo/unibill-backend/issues/52)
+* **functions:** OcrClient — provider chain + breaker + rate limit + ai_calls (T-409) ([3e79059](https://github.com/Lukazukimo/unibill-backend/commit/3e790595d9758ece2592d05ee4e91272f129fbca)), closes [#55](https://github.com/Lukazukimo/unibill-backend/issues/55)
+* **functions:** OcrSpaceProvider (primary OCR provider) (T-407) ([6f5e946](https://github.com/Lukazukimo/unibill-backend/commit/6f5e946e3365630850c3ccb04dfd8c669fdd469c)), closes [#54](https://github.com/Lukazukimo/unibill-backend/issues/54)
+* **functions:** PDF page splitter for the OCR layer (T-405) ([cda633f](https://github.com/Lukazukimo/unibill-backend/commit/cda633f0c31fb83606770fb2e518ffb221802053)), closes [#51](https://github.com/Lukazukimo/unibill-backend/issues/51)
+* P5 Slice A — extraction foundation (ai_calls + confidence formula) [T-401/T-417] ([5a8f83c](https://github.com/Lukazukimo/unibill-backend/commit/5a8f83ceca24e08a6a74e858eac147a77db1cf96))
+* P5 Slice B — deterministic extraction layers (pdfjs / page-split / regex) [T-404/T-405/T-411] ([6a6af8b](https://github.com/Lukazukimo/unibill-backend/commit/6a6af8b7521f146399e16f07e8d95bfc577a2ae5))
+* P5 Slice C1 — OCR providers (contract + OCR.space + Google Vision) [T-406/T-407/T-408] ([95e215d](https://github.com/Lukazukimo/unibill-backend/commit/95e215d874739b50646e16972a74f9d0f9d6abbd))
+* P5 Slice C2 — OCR chain + Layer 2 orchestrator (early-exit) [T-409/T-410] ([8f5fe21](https://github.com/Lukazukimo/unibill-backend/commit/8f5fe21431557122bda23ac60117fa679059e2e7))
+* P5 Slice D1 — AI extraction providers (Gemini + Groq + OpenRouter + prompt registry) [T-412/T-413/T-414] ([6d0fe64](https://github.com/Lukazukimo/unibill-backend/commit/6d0fe643a28118681978b8b1076ae7e258fd9f32))
+
+
+### Bug Fixes
+
+* **ci:** Auth-hibp — skip hosted-only HIBP on the local stack; closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213) (T-226) ([7b4b635](https://github.com/Lukazukimo/unibill-backend/commit/7b4b635f76565ff6bd455aacb109e8241e1bf5dd))
+* **ci:** Auth-hibp — skip the hosted-only HIBP cases on the local stack (T-226) ([0fb5e0e](https://github.com/Lukazukimo/unibill-backend/commit/0fb5e0eae6b7372cd5fea04cae63f767f35a30cf)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **extraction:** Preserve PDF bytes across Layer 1 (pdfjs detaches the buffer) ([04c5b7f](https://github.com/Lukazukimo/unibill-backend/commit/04c5b7ffafb955444cb693f430c9a4eae49eaa0a)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65)
+
+
+### Tests
+
+* **db:** Add the 4 missing P4 test suites (T-330, T-331, T-332, T-334) ([ab994b3](https://github.com/Lukazukimo/unibill-backend/commit/ab994b3be630ba1a5a5555233c9d5536512e138f)), closes [#41](https://github.com/Lukazukimo/unibill-backend/issues/41) [#43](https://github.com/Lukazukimo/unibill-backend/issues/43) [#45](https://github.com/Lukazukimo/unibill-backend/issues/45) [#42](https://github.com/Lukazukimo/unibill-backend/issues/42) [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
+* **db:** Add the 4 missing P4 test suites (T-330/T-331/T-332/T-334) ([289d111](https://github.com/Lukazukimo/unibill-backend/commit/289d111be9caf286fe8d12ccdfbdf68c12376704))
+* **db:** Cross-binding sync_runs RLS coverage (T-309) ([fabfb90](https://github.com/Lukazukimo/unibill-backend/commit/fabfb90a0171b6043c876841ce6ead8480d48da2)), closes [#17](https://github.com/Lukazukimo/unibill-backend/issues/17)
+* **extraction:** Consolidated §7.5.1 failure→status spec table ([e6f4157](https://github.com/Lukazukimo/unibill-backend/commit/e6f415792f4bf5c1533594cef08e2df0cbe3d39e)), closes [#73](https://github.com/Lukazukimo/unibill-backend/issues/73)
+* **extraction:** End-to-end extraction-worker integration suite ([0a33b8e](https://github.com/Lukazukimo/unibill-backend/commit/0a33b8ec807c1ab6287ad826737e693e2b1bac4d)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65) [#72](https://github.com/Lukazukimo/unibill-backend/issues/72)
+* **extraction:** P5 slice E3b — end-to-end integration suite ([eda6f56](https://github.com/Lukazukimo/unibill-backend/commit/eda6f5655e517ed94addcc8f3eb453329efac102))
+* **extraction:** P5 slice F3 — consolidated classifyError §7.5.1 table ([7bd317e](https://github.com/Lukazukimo/unibill-backend/commit/7bd317edb1eb5c84c8c7218daed5e8c5aec9f0b3))
+* **resilience:** PgTAP for the circuit_breakers state machine ([922118c](https://github.com/Lukazukimo/unibill-backend/commit/922118c35d8304aeca4509569ff4449bcc2899ca)), closes [#70](https://github.com/Lukazukimo/unibill-backend/issues/70)
+* **resilience:** PgTAP for the circuit_breakers state machine (T-423) ([a7a65df](https://github.com/Lukazukimo/unibill-backend/commit/a7a65df433b0a62a2ee7cb42444048f8012d45db))
+
+
+### CI / Tooling
+
+* **extraction:** Deploy-time AI provider smoke test ([b7790df](https://github.com/Lukazukimo/unibill-backend/commit/b7790df7d2a844aa795fed4fb397046889277616)), closes [#66](https://github.com/Lukazukimo/unibill-backend/issues/66)
+* **extraction:** P5 slice F4 — deploy-time AI provider smoke test ([13a4b78](https://github.com/Lukazukimo/unibill-backend/commit/13a4b782680ab4a7f375cbcb7695d4a193e0dec6))
+
+
+### Documentation
+
+* **extraction:** Extraction pipeline + chain breaker operations runbook ([63d773b](https://github.com/Lukazukimo/unibill-backend/commit/63d773b29aebec68fbe413772c57fc6ebab03243)), closes [#76](https://github.com/Lukazukimo/unibill-backend/issues/76)
+* **extraction:** P5 slice F5 — extraction pipeline runbook ([b4e0ebd](https://github.com/Lukazukimo/unibill-backend/commit/b4e0ebdb2d70c863b6162f85db88696d8596819e))
+
 ## [0.1.4](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.3...v0.1.4) (2026-06-23)
 
 
