@@ -192,3 +192,9 @@ verify_jwt = true
 
 [functions.archive-domain-events]
 verify_jwt = true
+
+# health is the ONLY public endpoint: the gateway must let unauthenticated
+# probes through (§11.4 "no auth required for public"). The handler itself adds
+# the internal metrics only when the caller presents the service_role bearer.
+[functions.health]
+verify_jwt = false
