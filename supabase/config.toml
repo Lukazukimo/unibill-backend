@@ -183,3 +183,6 @@ verify_jwt = true
 
 [functions.extraction-worker]
 verify_jwt = true
+
+[functions.capacity-monitor]
+verify_jwt = true
