@@ -4,7 +4,9 @@
 
 Se você encontrar uma vulnerabilidade de segurança, **por favor NÃO abra issue pública**. Em vez disso:
 
-1. Envie email para: **lukazukimomr+security@gmail.com** (substituir email definitivo no deploy)
+1. Reporte de forma privada por um destes canais:
+   - **GitHub** → aba *Security* → *Report a vulnerability* ([abrir](https://github.com/Lukazukimo/unibill-backend/security/advisories/new)) — canal preferencial
+   - ou email para **lukazukimomr+security@gmail.com** (email definitivo a substituir no deploy)
 2. Inclua:
    - Descrição da vulnerabilidade
    - Passos para reproduzir
@@ -41,11 +43,12 @@ Resposta esperada em até 7 dias (best effort; este é projeto pessoal).
 
 ## Coordenação de disclosure
 
-Após acordar fix + timeline:
+Seguimos disclosure coordenado com janela de **90 dias** (padrão de indústria):
+após acordar fix + timeline com quem reportou,
 1. Patch privado preparado
 2. Notificação a users (se necessário)
 3. Release com fix
-4. Disclosure público (CVE se aplicável) após 30 dias do fix
+4. Disclosure público (CVE se aplicável) em até **90 dias** do report (ou antes, se houver acordo)
 
 ## Hall of fame
 
