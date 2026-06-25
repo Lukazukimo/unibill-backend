@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.1.6](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.5...v0.1.6) (2026-06-25)
+
+
+### Features
+
+* **capacity:** Archive-domain-events — cold events to jsonl.gz (T-605) ([43f85df](https://github.com/Lukazukimo/unibill-backend/commit/43f85df1a7f4e4ad5028c281a82fb29f1ca27264))
+* **capacity:** Archive-domain-events (cold domain_events → jsonl.gz) ([069c39c](https://github.com/Lukazukimo/unibill-backend/commit/069c39c7400fe8e60b885fbe5ed8ee7e876e5965)), closes [#115](https://github.com/Lukazukimo/unibill-backend/issues/115)
+* **capacity:** Capacity + health + telemetry schema (T-601) ([23a7500](https://github.com/Lukazukimo/unibill-backend/commit/23a7500d714c7060fba71e1a8dd2779c160754c6))
+* **capacity:** Capacity + health + telemetry schema (T-601) ([18cfe47](https://github.com/Lukazukimo/unibill-backend/commit/18cfe478ca49468d245d43ac7c0dc2cbb7ce0a15)), closes [#106](https://github.com/Lukazukimo/unibill-backend/issues/106)
+* **capacity:** Capacity-evictor — tier escalation + PDF archive (T-603) ([12ee38e](https://github.com/Lukazukimo/unibill-backend/commit/12ee38e3f8e65bb4d00534782d9e586d1f41f5b6))
+* **capacity:** Capacity-evictor (tier escalation + PDF archive) ([1b8eb9c](https://github.com/Lukazukimo/unibill-backend/commit/1b8eb9c9a14aaefddc583533d1508d693dacd560)), closes [#111](https://github.com/Lukazukimo/unibill-backend/issues/111)
+* **capacity:** Capacity-monitor edge function (measure + classify + react) ([3af5e7e](https://github.com/Lukazukimo/unibill-backend/commit/3af5e7e01e126b2e84991c5774d8744991429736)), closes [#107](https://github.com/Lukazukimo/unibill-backend/issues/107)
+* **capacity:** Capacity-monitor edge function (T-602) ([78f7d57](https://github.com/Lukazukimo/unibill-backend/commit/78f7d5750fd9a3216080fdd7aa8f71cf979262ae))
+* **capacity:** Cron schedules for capacity + retention (T-604) ([9c16f94](https://github.com/Lukazukimo/unibill-backend/commit/9c16f94a7eff1214fab3bbee936a769755e31325))
+* **capacity:** Cron schedules for capacity + retention (T-604) ([7283a32](https://github.com/Lukazukimo/unibill-backend/commit/7283a32de5ce0b50cca7b0dc4bfe9055319ec4fe)), closes [#114](https://github.com/Lukazukimo/unibill-backend/issues/114)
+
+
+### Bug Fixes
+
+* **capacity:** Drop unused DomainEventInput import (CI deno-latest lint) ([dc08398](https://github.com/Lukazukimo/unibill-backend/commit/dc08398b8c4ac80f002992e6a39fe98c893496bc))
+
 ## [0.1.5](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.4...v0.1.5) (2026-06-25)
 
 
