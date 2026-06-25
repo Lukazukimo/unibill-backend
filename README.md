@@ -27,6 +27,10 @@ A spec consolidada (≈3500 linhas) vive em [`docs/superpowers/specs/2026-06-08-
 
 O plano de implementação (182 tasks) está em [`docs/superpowers/plans/2026-06-09-unibill-mvp-implementation-plan.md`](https://github.com/Lukazukimo/unibill/blob/main/docs/superpowers/plans/2026-06-09-unibill-mvp-implementation-plan.md).
 
+## Operações
+
+Procedimentos de incidente e manutenção (backup/restore DR, force breaker, re-extração, rotação de `service_role`, capacity, vazamento de credencial) estão no [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
+
 ## Setup local
 
 ```bash

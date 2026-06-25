@@ -98,3 +98,7 @@ Use os templates de issue: **Bug report** (`🐛`) ou **Feature request** (`✨`
 ## Releases
 
 Releases são automatizadas via [release-please](https://github.com/googleapis/release-please): a cada merge em `main`, um PR de release é mantido aberto, agregando commits desde a última tag e gerando CHANGELOG.md. Merger esse PR cria a tag + GitHub Release.
+
+## Operações
+
+Procedimentos de incidente e manutenção (backup/restore DR, force breaker, re-extração, rotação de `service_role`, capacity emergency, vazamento de credencial, test restore) estão no [`docs/RUNBOOK.md`](docs/RUNBOOK.md).
