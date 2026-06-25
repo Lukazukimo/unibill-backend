@@ -186,3 +186,6 @@ verify_jwt = true
 
 [functions.capacity-monitor]
 verify_jwt = true
+
+[functions.capacity-evictor]
+verify_jwt = true
