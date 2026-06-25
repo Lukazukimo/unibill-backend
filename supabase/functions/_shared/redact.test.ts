@@ -112,3 +112,39 @@ Deno.test('wrapRedaction falls back when the value has a poisoned toString', () 
   };
   assertEquals(wrapRedaction(poisoned), '[unstringifiable error]');
 });
+
+// -- T-403: LLM / OCR provider API key shapes (spec §6.5 + §7.3) -------------
+
+Deno.test('redactSecrets scrubs a Gemini / Google Vision key (AIza…)', () => {
+  const key = 'AIza' + 'C'.repeat(35); // 39-char Google API key
+  const out = redactSecrets(`gemini call failed key=${key} x-goog-api-key`);
+  assertStringIncludes(out, '[REDACTED_GOOGLE_API_KEY]');
+  assert(!out.includes(key), 'Google API key survived redaction');
+});
+
+Deno.test('redactSecrets scrubs a Groq key (gsk_…)', () => {
+  const key = 'gsk_' + 'a1B2c3D4'.repeat(5); // gsk_ + 40 alnum
+  const out = redactSecrets(`groq header had ${key} oops`);
+  assertStringIncludes(out, '[REDACTED_GROQ_KEY]');
+  assert(!out.includes(key), 'Groq key survived redaction');
+});
+
+Deno.test('redactSecrets scrubs an OpenRouter key (sk-or-…) as OPENROUTER, not OPENAI', () => {
+  const key = 'sk-or-v1-' + 'd'.repeat(40);
+  const out = redactSecrets(`openrouter ${key} end`);
+  assertStringIncludes(out, '[REDACTED_OPENROUTER_KEY]');
+  assert(!out.includes('[REDACTED_OPENAI_KEY]'), 'OpenRouter key mis-tagged as OpenAI');
+  assert(!out.includes(key), 'OpenRouter key survived redaction');
+});
+
+Deno.test('redactSecrets scrubs an OCR.space key (K + 14+ alnum)', () => {
+  const key = 'K88983423388957';
+  const out = redactSecrets(`ocr.space apikey=${key} done`);
+  assertStringIncludes(out, '[REDACTED_OCRSPACE_KEY]');
+  assert(!out.includes(key), 'OCR.space key survived redaction');
+});
+
+Deno.test('redactSecrets leaves short K-words alone (no OCR.space false positive)', () => {
+  const out = redactSecrets('Kubernetes pod Kafka topic');
+  assertEquals(out, 'Kubernetes pod Kafka topic');
+});

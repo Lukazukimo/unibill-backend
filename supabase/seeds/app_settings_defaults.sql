@@ -422,9 +422,9 @@ INSERT INTO public.app_settings (key, scope, scope_id, value, category, descript
 VALUES ('extraction.ocr_space.api_key_secret_id', 'global', NULL,
         jsonb_build_object('v', '00000000-0000-0000-0000-000000000000'), 'extraction.ocr_space',
         'Ref pra Vault secret. Substituir manualmente post-deploy pelo uuid real do vault_secret.', false)
-ON CONFLICT (key) WHERE scope = 'global' DO UPDATE
-  SET value = EXCLUDED.value, category = EXCLUDED.category, description = EXCLUDED.description,
-      requires_restart = EXCLUDED.requires_restart, updated_at = now();
+-- T-403: the vault-setup migration owns the real uuid; DO NOTHING so re-seeding
+-- never resets a wired secret back to the placeholder.
+ON CONFLICT (key) WHERE scope = 'global' DO NOTHING;
 
 INSERT INTO public.app_settings (key, scope, scope_id, value, category, description, requires_restart)
 VALUES ('extraction.ocr_space.language', 'global', NULL,
@@ -468,9 +468,8 @@ VALUES ('extraction.google_vision.api_key_secret_id', 'global', NULL,
         jsonb_build_object('v', '00000000-0000-0000-0000-000000000000'),
         'extraction.google_vision',
         'Ref pra Vault secret. Substituir manualmente post-deploy pelo uuid real do vault_secret.', false)
-ON CONFLICT (key) WHERE scope = 'global' DO UPDATE
-  SET value = EXCLUDED.value, category = EXCLUDED.category, description = EXCLUDED.description,
-      requires_restart = EXCLUDED.requires_restart, updated_at = now();
+-- T-403: the vault-setup migration owns the real uuid; DO NOTHING (see ocr_space).
+ON CONFLICT (key) WHERE scope = 'global' DO NOTHING;
 
 INSERT INTO public.app_settings (key, scope, scope_id, value, category, description, requires_restart)
 VALUES ('extraction.google_vision.language_hints', 'global', NULL,
@@ -528,9 +527,8 @@ INSERT INTO public.app_settings (key, scope, scope_id, value, category, descript
 VALUES ('ai.gemini.api_key_secret_id', 'global', NULL,
         jsonb_build_object('v', '00000000-0000-0000-0000-000000000000'), 'ai',
         'Ref pra Vault secret. Substituir manualmente post-deploy pelo uuid real do vault_secret.', false)
-ON CONFLICT (key) WHERE scope = 'global' DO UPDATE
-  SET value = EXCLUDED.value, category = EXCLUDED.category, description = EXCLUDED.description,
-      requires_restart = EXCLUDED.requires_restart, updated_at = now();
+-- T-403: the vault-setup migration owns the real uuid; DO NOTHING (see ocr_space).
+ON CONFLICT (key) WHERE scope = 'global' DO NOTHING;
 
 INSERT INTO public.app_settings (key, scope, scope_id, value, category, description, requires_restart)
 VALUES ('ai.gemini.daily_limit', 'global', NULL, jsonb_build_object('v', 1000), 'ai',
@@ -551,9 +549,8 @@ INSERT INTO public.app_settings (key, scope, scope_id, value, category, descript
 VALUES ('ai.groq.api_key_secret_id', 'global', NULL,
         jsonb_build_object('v', '00000000-0000-0000-0000-000000000000'), 'ai',
         'Ref pra Vault secret. Substituir manualmente post-deploy pelo uuid real do vault_secret.', false)
-ON CONFLICT (key) WHERE scope = 'global' DO UPDATE
-  SET value = EXCLUDED.value, category = EXCLUDED.category, description = EXCLUDED.description,
-      requires_restart = EXCLUDED.requires_restart, updated_at = now();
+-- T-403: the vault-setup migration owns the real uuid; DO NOTHING (see ocr_space).
+ON CONFLICT (key) WHERE scope = 'global' DO NOTHING;
 
 INSERT INTO public.app_settings (key, scope, scope_id, value, category, description, requires_restart)
 VALUES ('ai.groq.daily_limit', 'global', NULL, jsonb_build_object('v', 10000), 'ai',
@@ -573,9 +570,8 @@ INSERT INTO public.app_settings (key, scope, scope_id, value, category, descript
 VALUES ('ai.openrouter.api_key_secret_id', 'global', NULL,
         jsonb_build_object('v', '00000000-0000-0000-0000-000000000000'), 'ai',
         'Ref pra Vault secret. Substituir manualmente post-deploy pelo uuid real do vault_secret.', false)
-ON CONFLICT (key) WHERE scope = 'global' DO UPDATE
-  SET value = EXCLUDED.value, category = EXCLUDED.category, description = EXCLUDED.description,
-      requires_restart = EXCLUDED.requires_restart, updated_at = now();
+-- T-403: the vault-setup migration owns the real uuid; DO NOTHING (see ocr_space).
+ON CONFLICT (key) WHERE scope = 'global' DO NOTHING;
 
 
 -- ============================================================================

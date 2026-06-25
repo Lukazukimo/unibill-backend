@@ -45,6 +45,18 @@ const SECRET_PATTERNS: Array<{ re: RegExp; replacement: string }> = [
     replacement: '$1[REDACTED]$2',
   },
 
+  // -- LLM / OCR provider API keys (T-403, spec §6.5 + §7.3). Scrubbed from logs
+  //    and ai_calls.error_summary. Specific shapes FIRST so the generic sk-
+  //    pattern below doesn't shadow the OpenRouter sk-or- form.
+  // Gemini + Google Vision (Google API key: "AIza" + 35 chars).
+  { re: /AIza[0-9A-Za-z_\-]{35}/g, replacement: '[REDACTED_GOOGLE_API_KEY]' },
+  // Groq ("gsk_" + token).
+  { re: /\bgsk_[A-Za-z0-9]{20,}\b/g, replacement: '[REDACTED_GROQ_KEY]' },
+  // OpenRouter ("sk-or-…") — BEFORE the generic OpenAI sk- below.
+  { re: /sk-or-[A-Za-z0-9\-]{20,}/g, replacement: '[REDACTED_OPENROUTER_KEY]' },
+  // OCR.space (free/pro keys: "K" + 14+ alphanumerics).
+  { re: /\bK[A-Za-z0-9]{14,}\b/g, replacement: '[REDACTED_OCRSPACE_KEY]' },
+
   // -- OpenAI-style API keys
   { re: /sk-[A-Za-z0-9]{20,}/g, replacement: '[REDACTED_OPENAI_KEY]' },
 

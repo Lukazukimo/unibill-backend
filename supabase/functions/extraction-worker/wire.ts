@@ -1,19 +1,22 @@
 /**
- * wire.ts — production wiring for the extraction-worker (T-418).
+ * wire.ts — production wiring for the extraction-worker (T-418, T-403).
  *
- * Assembles the real OCR + AI provider chains from env secrets, the parser
- * loader and the Storage download. Kept out of index.ts so the worker loop can
- * be unit-tested with these collaborators injected as fakes.
+ * Assembles the real OCR + AI provider chains, the parser loader and the Storage
+ * download. Kept out of index.ts so the worker loop can be unit-tested with these
+ * collaborators injected as fakes.
  *
  * Provider chains (spec §7.3 / §7.5): OCR = [ocr_space, google_vision];
- * AI = [gemini, groq]. A provider whose API key is absent is dropped from the
- * chain (so a single configured provider still works); an empty chain simply
- * surfaces NoProviderAvailableError at call time. Models / endpoints / daily
- * limits use env overrides with sensible defaults (TODO: migrate the knobs to
- * extraction.* app_settings, like the layer1/confidence thresholds).
+ * AI = [gemini, groq]. API keys are resolved VAULT-FIRST, ENV-FALLBACK (T-403):
+ * read app_settings.*.api_key_secret_id → getVaultSecret(); if the secret is
+ * unset (placeholder uuid / placeholder value) or the read fails, fall back to
+ * the provider env var. A provider with no key from either source is dropped
+ * from the chain (a single configured provider still works). Models / endpoints
+ * / daily limits use env overrides with sensible defaults.
  */
 
 import { type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.45.0';
+import { getGlobalConfig, readConfig } from '../_shared/config.ts';
+import { getVaultSecret } from '../_shared/vault.ts';
 import { createOcrClient, type OcrChainEntry } from '../_shared/ocr/ocr_client.ts';
 import { createOcrSpaceProvider } from '../_shared/ocr/providers/ocr_space.ts';
 import { createGoogleVisionProvider } from '../_shared/ocr/providers/google_vision.ts';
@@ -35,10 +38,49 @@ const envNum = (k: string, d: number): number => {
 const OCR_TIMEOUT_MS = 30_000;
 const AI_TIMEOUT_MS = 30_000;
 
-/** Build the OCR provider chain from env (ocr_space → google_vision). */
-export function buildOcrClient(client: SupabaseClient) {
+const NIL_UUID = '00000000-0000-0000-0000-000000000000';
+// The placeholder VALUE the vault-setup migration stores until ops injects the
+// real key (see 20260624130000_vault_setup_extraction_keys.sql) — treated as
+// "unset" so resolution falls through to the env var.
+const VAULT_PLACEHOLDER = 'SET_VIA_update_vault_secret_AT_DEPLOY';
+
+/**
+ * Resolve a provider API key VAULT-FIRST, ENV-FALLBACK: if app_settings holds a
+ * real (non-placeholder) secret uuid, decrypt it; a placeholder/missing/failed
+ * vault read falls through to the env var. Never throws.
+ */
+async function resolveApiKey(
+  cfg: Map<string, unknown>,
+  secretIdKey: string,
+  envName: string,
+  client: SupabaseClient,
+): Promise<string | undefined> {
+  const secretId = readConfig<string | null>(cfg, secretIdKey, null);
+  if (secretId && secretId !== NIL_UUID) {
+    try {
+      const v = await getVaultSecret(secretId, { client });
+      if (v && v !== VAULT_PLACEHOLDER) return v;
+    } catch {
+      // vault miss / decrypt failure → env fallback below
+    }
+  }
+  return env(envName);
+}
+
+/** Build the OCR provider chain (ocr_space → google_vision). */
+export async function buildOcrClient(client: SupabaseClient) {
+  const cfg = await getGlobalConfig([
+    'extraction.ocr_space.api_key_secret_id',
+    'extraction.google_vision.api_key_secret_id',
+  ], { client });
+
   const chain: OcrChainEntry[] = [];
-  const ocrSpaceKey = env('OCR_SPACE_API_KEY');
+  const ocrSpaceKey = await resolveApiKey(
+    cfg,
+    'extraction.ocr_space.api_key_secret_id',
+    'OCR_SPACE_API_KEY',
+    client,
+  );
   if (ocrSpaceKey) {
     chain.push({
       provider: createOcrSpaceProvider({
@@ -50,7 +92,12 @@ export function buildOcrClient(client: SupabaseClient) {
       dailyLimit: envNum('OCR_SPACE_DAILY_LIMIT', 25_000),
     });
   }
-  const visionKey = env('GOOGLE_VISION_API_KEY');
+  const visionKey = await resolveApiKey(
+    cfg,
+    'extraction.google_vision.api_key_secret_id',
+    'GOOGLE_VISION_API_KEY',
+    client,
+  );
   if (visionKey) {
     chain.push({
       provider: createGoogleVisionProvider({
@@ -66,11 +113,21 @@ export function buildOcrClient(client: SupabaseClient) {
   return createOcrClient({ chain, client });
 }
 
-/** Build the AI provider chain from env (gemini → groq). */
-export function buildAiClient(client: SupabaseClient) {
-  const chain: AiChainEntry[] = [];
+/** Build the AI provider chain (gemini → groq). */
+export async function buildAiClient(client: SupabaseClient) {
+  const cfg = await getGlobalConfig([
+    'ai.gemini.api_key_secret_id',
+    'ai.groq.api_key_secret_id',
+  ], { client });
   const prompt = getPrompt(INVOICE_PROMPT_KEY);
-  const geminiKey = env('GEMINI_API_KEY');
+
+  const chain: AiChainEntry[] = [];
+  const geminiKey = await resolveApiKey(
+    cfg,
+    'ai.gemini.api_key_secret_id',
+    'GEMINI_API_KEY',
+    client,
+  );
   if (geminiKey) {
     chain.push({
       provider: createGeminiProvider({
@@ -81,7 +138,7 @@ export function buildAiClient(client: SupabaseClient) {
       dailyLimit: envNum('GEMINI_DAILY_LIMIT', 1_500),
     });
   }
-  const groqKey = env('GROQ_API_KEY');
+  const groqKey = await resolveApiKey(cfg, 'ai.groq.api_key_secret_id', 'GROQ_API_KEY', client);
   if (groqKey) {
     chain.push({
       provider: createGroqProvider({
@@ -96,14 +153,12 @@ export function buildAiClient(client: SupabaseClient) {
 }
 
 /** Default production cascade: real OCR + AI clients over orchestrate(). */
-export function defaultRunExtraction(
+export async function defaultRunExtraction(
   input: OrchestrateInput,
   client: SupabaseClient,
 ): Promise<ExtractionOutcome> {
-  return orchestrate(input, {
-    ocrClient: buildOcrClient(client),
-    aiClient: buildAiClient(client),
-  });
+  const [ocrClient, aiClient] = await Promise.all([buildOcrClient(client), buildAiClient(client)]);
+  return orchestrate(input, { ocrClient, aiClient });
 }
 
 /** Load the active utility parsers (the columns map 1:1 onto UtilityParser). */
