@@ -1,0 +1,105 @@
+name: Backup (weekly → Backblaze B2)
+
+# T-620 / spec §11.3 — weekly pg_dump of the database, uploaded to a Backblaze B2
+# bucket (S3-compatible). Retention (4 weekly + 6 monthly) is enforced by the
+# bucket lifecycle policy documented in docs/backup.md (one-time setup).
+#
+# Required repo secrets (see docs/secrets.md):
+#   SUPABASE_DB_URL    - postgres connection string (incl. password) of the prod/dev DB
+#   B2_KEY_ID          - Backblaze application key id  → AWS_ACCESS_KEY_ID
+#   B2_APPLICATION_KEY - Backblaze application key      → AWS_SECRET_ACCESS_KEY
+#   B2_BUCKET          - target bucket name (e.g. unibill-backups)
+#   B2_ENDPOINT        - optional; default s3.us-west-002.backblazeb2.com
+#   ADMIN_EMAIL / SMTP_* - failure alert (see docs/secrets.md)
+
+on:
+  schedule:
+    - cron: '0 5 * * 0' # Sundays 05:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-weekly
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: pg_dump → B2
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Lukazukimo/unibill-backend' }}
+    steps:
+      - name: Check configuration
+        id: cfg
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+        run: |
+          if [ -n "$DB_URL" ] && [ -n "$B2_BUCKET" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_DB_URL / B2_BUCKET not set — backup idle (see docs/backup.md)"
+          fi
+
+      - name: Install PostgreSQL client 17
+        if: steps.cfg.outputs.ready == 'true'
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Dump + upload to B2
+        id: dump
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          PGCONNECT_TIMEOUT: '30'
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+          B2_ENDPOINT: ${{ secrets.B2_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          endpoint="https://${B2_ENDPOINT:-s3.us-west-002.backblazeb2.com}"
+          file="unibill-$(date -u +%Y%m%d).dump"
+          pg_dump --format=custom --no-owner --no-acl -d "$SUPABASE_DB_URL" -f "$file"
+          size=$(du -h "$file" | cut -f1)
+          aws s3 cp "$file" "s3://${B2_BUCKET}/${file}" --endpoint-url "$endpoint"
+          aws s3 ls "s3://${B2_BUCKET}/${file}" --endpoint-url "$endpoint"
+          # First run of the month → also promote to monthly/ (long retention,
+          # see the lifecycle policy in docs/backup.md: weekly ~5w, monthly ~6mo).
+          promoted="(none)"
+          if [ "$(date -u +%d)" -le 07 ]; then
+            monthly="monthly/unibill-$(date -u +%Y%m).dump"
+            aws s3 cp "$file" "s3://${B2_BUCKET}/${monthly}" --endpoint-url "$endpoint"
+            promoted="$monthly"
+          fi
+          {
+            echo "## Backup complete"
+            echo "- File: \`${file}\`"
+            echo "- Size: ${size}"
+            echo "- Bucket: \`${B2_BUCKET}\`"
+            echo "- Monthly promotion: \`${promoted}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Alert admin on failure
+        if: failure() && steps.cfg.outputs.ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[Unibill] Weekly backup FAILED"
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: Unibill Backup <${{ secrets.SMTP_USERNAME }}>
+          body: |
+            The weekly pg_dump → Backblaze B2 backup failed.
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+            See docs/RUNBOOK.md §1 (Backup restore) and §8 (Test restore).

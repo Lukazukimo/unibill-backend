@@ -1,0 +1,82 @@
+name: Backup (monthly storage metadata → B2)
+
+# T-620 / spec §11.3 — monthly snapshot of invoice-PDF metadata (storage path +
+# sha256 file hash) as gzipped NDJSON, uploaded to B2. A full PDF restore is
+# roadmap ("talvez"); this snapshot is the recoverable index of what existed.
+#
+# Required secrets (see docs/secrets.md): SUPABASE_DB_URL, B2_KEY_ID,
+#   B2_APPLICATION_KEY, B2_BUCKET, B2_ENDPOINT (optional), ADMIN_EMAIL / SMTP_*.
+
+on:
+  schedule:
+    - cron: '0 5 1 * *' # 05:00 UTC, 1st of the month
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup-storage-metadata
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    name: storage metadata → B2
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Lukazukimo/unibill-backend' }}
+    steps:
+      - name: Check configuration
+        id: cfg
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+        run: |
+          if [ -n "$DB_URL" ] && [ -n "$B2_BUCKET" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_DB_URL / B2_BUCKET not set — storage-metadata snapshot idle"
+          fi
+
+      - name: Snapshot + upload
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.B2_APPLICATION_KEY }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+          B2_ENDPOINT: ${{ secrets.B2_ENDPOINT }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+          endpoint="https://${B2_ENDPOINT:-s3.us-west-002.backblazeb2.com}"
+          month="$(date -u +%Y-%m)"
+          out="storage_metadata_${month}.ndjson.gz"
+          # One JSON object per non-deleted invoice PDF: path + bucket + sha256.
+          psql "$SUPABASE_DB_URL" -At -c \
+            "SELECT json_build_object('path', storage_path, 'bucket', storage_bucket, 'sha256', file_hash, 'invoice_id', id) \
+               FROM public.invoices WHERE deleted_at IS NULL AND pdf_archived_at IS NULL" \
+            | gzip -c > "$out"
+          rows=$(zcat "$out" | wc -l)
+          aws s3 cp "$out" "s3://${B2_BUCKET}/archives/storage_metadata/${month}.ndjson.gz" --endpoint-url "$endpoint"
+          {
+            echo "## Storage metadata snapshot"
+            echo "- Month: ${month}"
+            echo "- Rows: ${rows}"
+            echo "- Object: \`archives/storage_metadata/${month}.ndjson.gz\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Alert admin on failure
+        if: failure() && steps.cfg.outputs.ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[Unibill] Monthly storage-metadata snapshot FAILED"
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: Unibill Backup <${{ secrets.SMTP_USERNAME }}>
+          body: |
+            The monthly storage-metadata snapshot failed.
+            Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
