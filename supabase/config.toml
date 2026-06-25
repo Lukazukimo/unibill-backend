@@ -189,3 +189,6 @@ verify_jwt = true
 
 [functions.capacity-evictor]
 verify_jwt = true
+
+[functions.archive-domain-events]
+verify_jwt = true
