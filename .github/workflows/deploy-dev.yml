@@ -29,6 +29,11 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_DEV }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_DEV }}
+      # AI provider smoke test (T-419) — gates the Edge Functions deploy.
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_DEV }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -52,6 +57,20 @@ jobs:
           # and token TTLs. Without it the deep-link allow-list never reaches the
           # project and would have to be set by hand in the dashboard.
           echo "Would run: supabase config push"
+
+      # Gate: ping every configured AI provider with a 1-token call before
+      # promoting functions, so a deprecated model (404) or the
+      # TBD_SET_AT_DEPLOY sentinel fails the deploy loudly (T-419, §11.5). Skips
+      # cleanly until the AI + service-role secrets are configured for the env.
+      - name: Setup Deno
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Smoke-test AI providers
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
+        run: deno run --allow-env --allow-net scripts/smoke_test_ai_providers.ts
 
       - name: Deploy Edge Functions (placeholder)
         run: |
