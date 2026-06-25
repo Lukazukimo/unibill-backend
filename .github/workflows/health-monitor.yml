@@ -1,0 +1,100 @@
+name: Health monitor
+
+# T-614 / spec §11.4 — probe GET /health every 15 minutes; email the admin when
+# the endpoint is unreachable or reports status='down'. The alert body is
+# enriched with the last 5 capacity_snapshots + ai_calls (fetched with the
+# service_role key) so the operator has context without logging in.
+#
+# Required repo secrets (see docs/secrets.md):
+#   HEALTH_URL                   - full public URL of the deployed /health function
+#   SUPABASE_URL_DEV             - REST base (https://<ref>.supabase.co) for context queries
+#   SUPABASE_SERVICE_ROLE_KEY_DEV- service_role key (bypasses RLS for the read-only context)
+#   ADMIN_EMAIL                  - recipient of the alert
+#   SMTP_HOST / SMTP_PORT / SMTP_USERNAME / SMTP_PASSWORD - outbound SMTP
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-monitor
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: probe /health
+    runs-on: ubuntu-latest
+    # Skip on forks (secrets are absent there).
+    if: ${{ github.repository == 'Lukazukimo/unibill-backend' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Stay inert (green no-op) until HEALTH_URL is configured, so a fresh repo
+      # doesn't fail every 15 minutes before monitoring is wired up.
+      - name: Check configuration
+        id: cfg
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          if [ -n "$HEALTH_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::HEALTH_URL not set — health monitor idle (configure secrets per docs/secrets.md)"
+          fi
+
+      - name: Probe /health
+        id: probe
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/health.json -w '%{http_code}' --max-time 20 "$HEALTH_URL" || echo 000)
+          status=$(jq -r '.status // "unknown"' /tmp/health.json 2>/dev/null || echo unknown)
+          echo "http_code=$code" >> "$GITHUB_OUTPUT"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ "$code" != "200" ] || [ "$status" = "down" ]; then
+            echo "alert=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::/health unhealthy — HTTP $code, status=$status"
+          else
+            echo "alert=false" >> "$GITHUB_OUTPUT"
+            echo "/health OK — HTTP $code, status=$status"
+          fi
+
+      - name: Gather context
+        if: steps.probe.outputs.alert == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV }}
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_DEV }}
+        run: |
+          set -euo pipefail
+          q() { curl -sS --max-time 20 -H "apikey: $SRK" -H "Authorization: Bearer $SRK" "$1"; }
+          q "$SUPABASE_URL/rest/v1/capacity_snapshots?select=checked_at,db_pct,db_status,storage_pct,storage_status&order=checked_at.desc&limit=5" > /tmp/cap.json || echo '[]' > /tmp/cap.json
+          q "$SUPABASE_URL/rest/v1/ai_calls?select=started_at,provider,status,error_summary&order=started_at.desc&limit=5" > /tmp/ai.json || echo '[]' > /tmp/ai.json
+
+      - name: Format alert body
+        if: steps.probe.outputs.alert == 'true'
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+          HTTP_CODE: ${{ steps.probe.outputs.http_code }}
+          HEALTH_STATUS: ${{ steps.probe.outputs.status }}
+        run: bash .github/scripts/format_health_alert.sh | tee /tmp/alert_body.txt
+
+      - name: Email admin
+        if: steps.probe.outputs.alert == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[Unibill] /health ${{ steps.probe.outputs.status }} (HTTP ${{ steps.probe.outputs.http_code }})"
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: Unibill Health Monitor <${{ secrets.SMTP_USERNAME }}>
+          body: file:///tmp/alert_body.txt
