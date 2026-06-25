@@ -21,8 +21,9 @@ import { createClient, type SupabaseClient } from 'jsr:@supabase/supabase-js@^2.
 import { log } from './logging.ts';
 import { redactSecrets } from './redact.ts';
 
-// Only tables that actually exist. `errors_count` lives ONLY on sync_runs.
-export type RunsTable = 'sync_runs' | 'extraction_runs';
+// Only tables that actually exist. `errors_count` lives ONLY on sync_runs (the
+// failure path guards on that), so adding eviction_runs (no errors_count) is safe.
+export type RunsTable = 'sync_runs' | 'extraction_runs' | 'eviction_runs';
 
 export type RunInitial = Record<string, unknown>;
 
