@@ -29,7 +29,7 @@ import {
   queueToDlq,
 } from '../_shared/queue.ts';
 import { withRunRow } from '../_shared/runs.ts';
-import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import { emitDomainEvent } from '../_shared/events.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { log } from '../_shared/logging.ts';
 import { measure } from '../capacity-monitor/measure.ts';
