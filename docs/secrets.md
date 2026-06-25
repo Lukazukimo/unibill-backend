@@ -32,6 +32,18 @@ Never commit real values — this file documents *names and purpose only*.
 | `SMTP_USERNAME` | health-monitor, capacity-monthly-report | SMTP user (also the `From:` address). |
 | `SMTP_PASSWORD` | health-monitor, capacity-monthly-report | SMTP password / app token. |
 
+## Backups → Backblaze B2 (T-620)
+
+See [backup.md](backup.md) for bucket setup + lifecycle policy.
+
+| Secret | Used by | Purpose |
+|---|---|---|
+| `SUPABASE_DB_URL` | backup-weekly, backup-storage-metadata | Postgres connection string (incl. password) for `pg_dump` / `psql`. |
+| `B2_KEY_ID` | backup-* | Backblaze application key id → `AWS_ACCESS_KEY_ID`. |
+| `B2_APPLICATION_KEY` | backup-* | Backblaze application key → `AWS_SECRET_ACCESS_KEY`. |
+| `B2_BUCKET` | backup-* | Target bucket name (e.g. `unibill-backups`). |
+| `B2_ENDPOINT` | backup-* | Optional S3 endpoint host; default `s3.us-west-002.backblazeb2.com`. |
+
 ## Project automation
 
 | Secret | Used by | Purpose |
