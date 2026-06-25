@@ -1,0 +1,84 @@
+name: Capacity monthly report
+
+# T-614 / spec §11.4 — on the 1st of each month, email a 30-day capacity summary
+# (avg/peak DB + storage %, eviction count). Read-only, via the service_role key.
+#
+# Required repo secrets (see docs/secrets.md):
+#   SUPABASE_URL_DEV, SUPABASE_SERVICE_ROLE_KEY_DEV, ADMIN_EMAIL,
+#   SMTP_HOST / SMTP_PORT / SMTP_USERNAME / SMTP_PASSWORD
+
+on:
+  schedule:
+    - cron: '0 6 1 * *' # 06:00 UTC, 1st of the month
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: capacity-monthly-report
+  cancel-in-progress: true
+
+jobs:
+  report:
+    name: 30-day capacity summary
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Lukazukimo/unibill-backend' }}
+    steps:
+      # Stay inert until the data source is configured (fresh repo = no-op).
+      - name: Check configuration
+        id: cfg
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV }}
+        run: |
+          if [ -n "$SUPABASE_URL" ]; then
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::SUPABASE_URL_DEV not set — capacity report idle (see docs/secrets.md)"
+          fi
+
+      - name: Build report
+        if: steps.cfg.outputs.ready == 'true'
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV }}
+          SRK: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_DEV }}
+        run: |
+          set -euo pipefail
+          since=$(date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ)
+          q() { curl -sS --max-time 30 -H "apikey: $SRK" -H "Authorization: Bearer $SRK" "$1"; }
+          q "$SUPABASE_URL/rest/v1/capacity_snapshots?select=db_pct,storage_pct&checked_at=gte.$since" > /tmp/cap30.json || echo '[]' > /tmp/cap30.json
+          q "$SUPABASE_URL/rest/v1/eviction_runs?select=id&started_at=gte.$since" > /tmp/evict30.json || echo '[]' > /tmp/evict30.json
+
+          samples=$(jq 'length' /tmp/cap30.json)
+          evictions=$(jq 'length' /tmp/evict30.json)
+          db_avg=$(jq '[.[].db_pct] | if length>0 then (add/length*100|round/100) else 0 end' /tmp/cap30.json)
+          db_peak=$(jq '[.[].db_pct] | max // 0' /tmp/cap30.json)
+          st_avg=$(jq '[.[].storage_pct] | if length>0 then (add/length*100|round/100) else 0 end' /tmp/cap30.json)
+          st_peak=$(jq '[.[].storage_pct] | max // 0' /tmp/cap30.json)
+
+          {
+            echo "Unibill — 30-day capacity report"
+            echo "================================"
+            echo "Window:          since $since"
+            echo "Snapshots:       $samples"
+            echo ""
+            echo "DB usage:        avg ${db_avg}%  peak ${db_peak}%"
+            echo "Storage usage:   avg ${st_avg}%  peak ${st_peak}%"
+            echo "Eviction runs:   $evictions"
+            echo ""
+            echo "— Unibill (.github/workflows/capacity-monthly-report.yml)"
+          } | tee /tmp/report_body.txt
+
+      - name: Email report
+        if: steps.cfg.outputs.ready == 'true'
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_HOST }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: "[Unibill] 30-day capacity report"
+          to: ${{ secrets.ADMIN_EMAIL }}
+          from: Unibill Capacity Report <${{ secrets.SMTP_USERNAME }}>
+          body: file:///tmp/report_body.txt
