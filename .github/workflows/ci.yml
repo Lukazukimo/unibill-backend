@@ -166,3 +166,6 @@ jobs:
 
       - name: Check events.md is up to date
         run: deno run --allow-read --allow-write --allow-env scripts/gen_events_doc.ts --check
+
+      - name: Check openapi.yaml is up to date
+        run: deno run --allow-read --allow-write scripts/gen_openapi.ts --check
