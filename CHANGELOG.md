@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.1.8](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.7...v0.1.8) (2026-06-26)
+
+
+### Features
+
+* **ops:** GET /health — public status + service_role metrics (T-613) ([6fa2272](https://github.com/Lukazukimo/unibill-backend/commit/6fa22729d2f5389d9f0da8870b85f874dde04f0b))
+* **ops:** GET /health — public status + service_role metrics (T-613) ([76dd511](https://github.com/Lukazukimo/unibill-backend/commit/76dd511bb2de777a7e04b7f92d52970df64cc8a9)), closes [#124](https://github.com/Lukazukimo/unibill-backend/issues/124)
+
+
+### CI / Tooling
+
+* **ops:** Health-monitor + capacity monthly report workflows (T-614) ([8a17289](https://github.com/Lukazukimo/unibill-backend/commit/8a172898087b57f02314c717531a78db58876e90))
+* **ops:** Health-monitor + capacity monthly report workflows (T-614) ([0fc2411](https://github.com/Lukazukimo/unibill-backend/commit/0fc24112d90bd8cbb7e4933fccfb8408117ba298)), closes [#123](https://github.com/Lukazukimo/unibill-backend/issues/123)
+* Publish Deno coverage artifact + summary (T-617, Deno-only scope) ([46672ed](https://github.com/Lukazukimo/unibill-backend/commit/46672ede023ae5733b95221a3a2bd606eb79007e))
+* Publish Deno coverage artifact + summary (T-617, Deno-only scope) ([8c16bad](https://github.com/Lukazukimo/unibill-backend/commit/8c16bad67d554aaa11335ffb7bff5274e45c3248)), closes [#127](https://github.com/Lukazukimo/unibill-backend/issues/127)
+
+
+### Ops / Runbooks
+
+* **backup:** Weekly pg_dump + monthly storage-metadata → Backblaze B2 (T-620) ([98a03fa](https://github.com/Lukazukimo/unibill-backend/commit/98a03fa16d662640a1ed6a1b88a39f4b6f927529)), closes [#130](https://github.com/Lukazukimo/unibill-backend/issues/130)
+
+
+### Documentation
+
+* **adr:** Seed ADR directory with the 5 foundational decisions (T-626) ([a18b0cc](https://github.com/Lukazukimo/unibill-backend/commit/a18b0cc1dea3b83176809bf9d03023da51674efc))
+* **adr:** Seed ADR directory with the 5 foundational decisions (T-626) ([18f7451](https://github.com/Lukazukimo/unibill-backend/commit/18f7451e4184ff24f8aac3f69804b9a7d882c7ce)), closes [#136](https://github.com/Lukazukimo/unibill-backend/issues/136)
+* **api:** OpenAPI 3.1 from §E + docs landing (T-625, scoped) ([5f11aad](https://github.com/Lukazukimo/unibill-backend/commit/5f11aad6ed8272e1cbdd903e7f4e531c3406b405))
+* **api:** OpenAPI 3.1 from §E + docs landing (T-625, scoped) ([e838e28](https://github.com/Lukazukimo/unibill-backend/commit/e838e2885333c6764567a95b2db138f310071e0f)), closes [#160](https://github.com/Lukazukimo/unibill-backend/issues/160)
+* **gen:** Auto-generate configuration.md + events.md + Pages publish (T-624) ([9fca54a](https://github.com/Lukazukimo/unibill-backend/commit/9fca54a85dc9ca4c7526f47c5e00eade6ea55a2d))
+* **gen:** Auto-generate configuration.md + events.md + Pages publish (T-624) ([53a2ce7](https://github.com/Lukazukimo/unibill-backend/commit/53a2ce713ca2717616113a9cda4ac89796a07361)), closes [#134](https://github.com/Lukazukimo/unibill-backend/issues/134)
+* **governance:** Exact Apache-2.0 LICENSE, Code of Conduct, 90d disclosure (T-623) ([04e0bbe](https://github.com/Lukazukimo/unibill-backend/commit/04e0bbe20752a85ff17c75e8ba75674a370c6961))
+* **governance:** Exact Apache-2.0 LICENSE, Code of Conduct, 90d disclosure (T-623) ([d9910d6](https://github.com/Lukazukimo/unibill-backend/commit/d9910d6595b550ec42bc2bacce3d9bbffddf7181)), closes [#133](https://github.com/Lukazukimo/unibill-backend/issues/133)
+* **ops:** RUNBOOK.md with the 8 incident/maintenance procedures (T-621) ([0740b01](https://github.com/Lukazukimo/unibill-backend/commit/0740b01474755651791b1320cd3814e8d9a9731c))
+* **ops:** RUNBOOK.md with the 8 incident/maintenance procedures (T-621) ([7383962](https://github.com/Lukazukimo/unibill-backend/commit/738396210ef9dc56d3cae76e2be8962e2f0d3d54)), closes [#131](https://github.com/Lukazukimo/unibill-backend/issues/131)
+
 ## [0.1.7](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.6...v0.1.7) (2026-06-25)
 
 
