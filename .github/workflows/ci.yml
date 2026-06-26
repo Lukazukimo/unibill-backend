@@ -143,3 +143,26 @@ jobs:
           name: deno-coverage
           path: coverage.lcov
           if-no-files-found: warn
+
+  docs-drift:
+    # T-624: the file-based generated docs (configuration.md, events.md) must
+    # match their source-of-truth (seed SQL / emit call sites / spec §F).
+    # Reporting check (NOT in branch-protection's required set) — fails red on
+    # drift; regenerate with the scripts. The data-dictionary check needs a live
+    # DB and runs separately.
+    name: docs-drift (generated docs ↔ source)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Check configuration.md is up to date
+        run: deno run --allow-read --allow-write scripts/gen_configuration_doc.ts --check
+
+      - name: Check events.md is up to date
+        run: deno run --allow-read --allow-write --allow-env scripts/gen_events_doc.ts --check
