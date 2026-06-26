@@ -1,0 +1,56 @@
+name: Docs publish (GitHub Pages)
+
+# T-624 / §G,§B,§F — render docs/ to GitHub Pages (the data-dictionary,
+# configuration and events references plus RUNBOOK/ADRs all become a browsable
+# site). Jekyll renders the markdown to HTML.
+#
+# SETUP (one-time): Settings → Pages → Source: "GitHub Actions". Then run this
+# workflow (Actions → Docs publish → Run workflow), or uncomment the push
+# trigger below to publish automatically on every docs/ change to main.
+#
+# Kept manual (workflow_dispatch) by default so it never fails on main before
+# Pages is enabled.
+
+on:
+  workflow_dispatch:
+  # Uncomment once Pages is enabled to publish automatically:
+  # push:
+  #   branches: [main]
+  #   paths: ['docs/**']
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    name: build + deploy Pages
+    runs-on: ubuntu-latest
+    if: ${{ github.repository == 'Lukazukimo/unibill-backend' }}
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build with Jekyll (renders docs/*.md → HTML)
+        uses: actions/jekyll-build-pages@v1
+        with:
+          source: ./docs
+          destination: ./_site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+
+      - name: Deploy to GitHub Pages
+        id: deploy
+        uses: actions/deploy-pages@v4
