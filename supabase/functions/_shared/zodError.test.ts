@@ -28,3 +28,11 @@ Deno.test('zodIssuesToErrors joins a nested path with dots', () => {
   const errors = zodIssuesToErrors(r.error);
   assertEquals(errors[0].field, 'a.b');
 });
+
+Deno.test('zodIssuesToErrors renders array indices in bracket notation', () => {
+  // Matches the hand-written validators' `field: household_ids[0]` convention.
+  const r = z.object({ ids: z.array(z.string()) }).safeParse({ ids: ['ok', 2] });
+  assert(!r.success);
+  const errors = zodIssuesToErrors(r.error);
+  assertEquals(errors[0].field, 'ids[1]');
+});

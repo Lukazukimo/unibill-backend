@@ -64,6 +64,8 @@ import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import { connectEmailBodySchema, UUID_RE } from '../_shared/schemas/emails.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -118,13 +120,9 @@ const IMAP_HOST_DEFAULT = 'imap.gmail.com';
 const IMAP_PORT_DEFAULT = 993;
 const IMAP_USE_TLS_DEFAULT = true;
 
-const APP_PASSWORD_LENGTH = 16;
-const EMAIL_MAX_LENGTH = 254;
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-// Pragmatic email regex — RFC compliance is delegated to Supabase Auth; here
-// we only block egregious shapes that would never login.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// APP_PASSWORD_LENGTH / EMAIL_MAX_LENGTH / EMAIL_RE / UUID_RE now live with
+// `connectEmailBodySchema` (single source — #265 / ADR-0006). `UUID_RE` is
+// imported above for the vault-return sanity check further down.
 
 // Postgres unique_violation
 const PG_UNIQUE_VIOLATION = '23505';
@@ -140,22 +138,17 @@ function jsonResponse(status: number, body: unknown): Response {
   });
 }
 
-/**
- * Normalizes an app password as Google displays it: "abcd efgh ijkl mnop".
- * We strip whitespace and lower-case before validating length.
- */
-export function normalizeAppPassword(raw: string): string {
-  return raw.replace(/\s+/g, '').toLowerCase();
-}
+/** `normalizeAppPassword` now lives with the schema (single source — #265). */
+export { normalizeAppPassword } from '../_shared/schemas/emails.ts';
 
 /**
- * Zod-style validation done by hand to avoid pulling zod for a single shape.
- * Returns the parsed value on success or a list of human-readable field errors.
- *
- * The contract is identical to the spec §E:
- *   email_address: string, RFC-ish, max 254
- *   app_password : string, exactly 16 chars after whitespace strip, [a-z]
- *   household_ids: uuid[], non-empty, no duplicates
+ * Valida `{ email_address, app_password, household_ids }` contra
+ * `connectEmailBodySchema` (Zod — fonte única, #265 / ADR-0006). Mantém a mesma
+ * união discriminada e acumula erros de campo na mesma ordem; o payload
+ * `422 details` é idêntico para bodies escalares/objeto (array cai na mensagem
+ * whole-body, mais correto). No success os valores já vêm normalizados;
+ * `app_password` é re-exposto como `app_password_normalized` pra preservar o
+ * shape de retorno.
  */
 export function validateConnectBody(value: unknown): {
   ok: true;
@@ -164,78 +157,12 @@ export function validateConnectBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  const errors: Array<{ field: string; message: string }> = [];
-
-  if (!value || typeof value !== 'object') {
-    return { ok: false, errors: [{ field: '', message: 'body must be a JSON object' }] };
-  }
-  const v = value as Record<string, unknown>;
-
-  // email_address
-  let email = '';
-  if (typeof v.email_address !== 'string') {
-    errors.push({ field: 'email_address', message: 'must be a string' });
-  } else {
-    email = v.email_address.trim().toLowerCase();
-    if (email.length === 0) {
-      errors.push({ field: 'email_address', message: 'must not be empty' });
-    } else if (email.length > EMAIL_MAX_LENGTH) {
-      errors.push({ field: 'email_address', message: `max ${EMAIL_MAX_LENGTH} chars` });
-    } else if (!EMAIL_RE.test(email)) {
-      errors.push({ field: 'email_address', message: 'invalid email format' });
-    }
-  }
-
-  // app_password
-  let passwordNormalized = '';
-  if (typeof v.app_password !== 'string') {
-    errors.push({ field: 'app_password', message: 'must be a string' });
-  } else {
-    passwordNormalized = normalizeAppPassword(v.app_password);
-    if (passwordNormalized.length !== APP_PASSWORD_LENGTH) {
-      errors.push({
-        field: 'app_password',
-        message: `must be exactly ${APP_PASSWORD_LENGTH} lowercase letters (Google app password)`,
-      });
-    } else if (!/^[a-z]+$/.test(passwordNormalized)) {
-      errors.push({
-        field: 'app_password',
-        message: 'must contain only lowercase letters [a-z]',
-      });
-    }
-  }
-
-  // household_ids
-  const householdIds: string[] = [];
-  if (!Array.isArray(v.household_ids)) {
-    errors.push({ field: 'household_ids', message: 'must be an array of UUID strings' });
-  } else if (v.household_ids.length === 0) {
-    errors.push({ field: 'household_ids', message: 'must contain at least one household_id' });
-  } else {
-    const seen = new Set<string>();
-    for (const [i, h] of v.household_ids.entries()) {
-      if (typeof h !== 'string' || !UUID_RE.test(h)) {
-        errors.push({ field: `household_ids[${i}]`, message: 'must be a UUID' });
-        continue;
-      }
-      const lower = h.toLowerCase();
-      if (seen.has(lower)) {
-        errors.push({ field: `household_ids[${i}]`, message: 'duplicate household_id' });
-        continue;
-      }
-      seen.add(lower);
-      householdIds.push(lower);
-    }
-  }
-
-  if (errors.length > 0) return { ok: false, errors };
+  const parsed = connectEmailBodySchema.safeParse(value);
+  if (!parsed.success) return { ok: false, errors: zodIssuesToErrors(parsed.error) };
+  const { email_address, app_password, household_ids } = parsed.data;
   return {
     ok: true,
-    data: {
-      email_address: email,
-      app_password_normalized: passwordNormalized,
-      household_ids: householdIds,
-    },
+    data: { email_address, app_password_normalized: app_password, household_ids },
   };
 }
 
