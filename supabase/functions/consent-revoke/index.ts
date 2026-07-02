@@ -56,19 +56,21 @@ import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import {
+  CONSENT_PURPOSES,
+  type ConsentPurpose,
+  revokeConsentBodySchema,
+} from '../_shared/schemas/consent.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type ConsentPurpose = 'terms' | 'privacy' | 'telemetry' | 'marketing';
-
-export const CONSENT_PURPOSES: ReadonlyArray<ConsentPurpose> = [
-  'terms',
-  'privacy',
-  'telemetry',
-  'marketing',
-] as const;
+// Consent enums + types are the single source in `_shared/schemas/consent.ts`
+// (#265 / ADR-0006); re-exported here for existing importers.
+export { CONSENT_PURPOSES };
+export type { ConsentPurpose };
 
 export type RevokeConsentRequest = {
   purpose: ConsentPurpose;
@@ -107,13 +109,6 @@ export type HandlerDeps = {
 };
 
 // ---------------------------------------------------------------------------
-// Constants
-// ---------------------------------------------------------------------------
-
-const REASON_MAX_LENGTH = 256;
-const REASON_DEFAULT = 'user_request';
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -135,55 +130,9 @@ export function validateRevokeBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  const errors: Array<{ field: string; message: string }> = [];
-
-  if (!value || typeof value !== 'object') {
-    return {
-      ok: false,
-      errors: [{ field: '', message: 'body must be a JSON object' }],
-    };
-  }
-  const v = value as Record<string, unknown>;
-
-  // purpose
-  let purpose: ConsentPurpose | null = null;
-  if (typeof v.purpose !== 'string') {
-    errors.push({ field: 'purpose', message: 'must be a string' });
-  } else if (!CONSENT_PURPOSES.includes(v.purpose as ConsentPurpose)) {
-    errors.push({
-      field: 'purpose',
-      message: `must be one of: ${CONSENT_PURPOSES.join(', ')}`,
-    });
-  } else {
-    purpose = v.purpose as ConsentPurpose;
-  }
-
-  // revoked_reason (optional)
-  let reason = REASON_DEFAULT;
-  if (v.revoked_reason !== undefined) {
-    if (typeof v.revoked_reason !== 'string') {
-      errors.push({
-        field: 'revoked_reason',
-        message: 'must be a string if provided',
-      });
-    } else {
-      const trimmed = v.revoked_reason.trim();
-      if (trimmed.length === 0) {
-        // Treat empty as "use default" — friendlier than 422.
-        reason = REASON_DEFAULT;
-      } else if (trimmed.length > REASON_MAX_LENGTH) {
-        errors.push({
-          field: 'revoked_reason',
-          message: `max ${REASON_MAX_LENGTH} chars`,
-        });
-      } else {
-        reason = trimmed;
-      }
-    }
-  }
-
-  if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, data: { purpose: purpose!, revoked_reason: reason } };
+  const parsed = revokeConsentBodySchema.safeParse(value);
+  if (!parsed.success) return { ok: false, errors: zodIssuesToErrors(parsed.error) };
+  return { ok: true, data: parsed.data };
 }
 
 // ---------------------------------------------------------------------------
