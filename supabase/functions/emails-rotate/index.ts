@@ -56,8 +56,9 @@ import {
   defaultGetCallerUser,
   defaultValidateImap,
   type ImapValidator,
-  normalizeAppPassword,
 } from '../emails-connect/index.ts';
+import { rotateEmailBodySchema } from '../_shared/schemas/emails.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -86,8 +87,9 @@ export type HandlerDeps = {
 // Constants
 // ---------------------------------------------------------------------------
 
-const APP_PASSWORD_LENGTH = 16;
-
+// App-password validation now lives in `_shared/schemas/emails.ts`
+// (rotateEmailBodySchema, shared with connect). UUID_RE below is for URL id
+// parsing, a separate concern.
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 // Postgres SQLSTATE for plpgsql_no_data_found — raised by
@@ -136,8 +138,11 @@ export function extractConnectedEmailId(url: URL): string | null {
 }
 
 /**
- * Validates the rotate body. Same rules as `connect` for app_password — see
- * spec §E for the verbatim contract.
+ * Valida `{ new_app_password }` contra `rotateEmailBodySchema` (Zod — fonte
+ * única, #265 / ADR-0006; mesma regra de app_password do connect). Mantém a
+ * união discriminada; o payload `422 details` é idêntico para bodies
+ * escalares/objeto (array cai na mensagem whole-body). No success o valor já vem
+ * normalizado e é exposto como `new_app_password_normalized`.
  */
 export function validateRotateBody(value: unknown): {
   ok: true;
@@ -146,33 +151,9 @@ export function validateRotateBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  const errors: Array<{ field: string; message: string }> = [];
-
-  if (!value || typeof value !== 'object') {
-    return { ok: false, errors: [{ field: '', message: 'body must be a JSON object' }] };
-  }
-  const v = value as Record<string, unknown>;
-
-  let normalized = '';
-  if (typeof v.new_app_password !== 'string') {
-    errors.push({ field: 'new_app_password', message: 'must be a string' });
-  } else {
-    normalized = normalizeAppPassword(v.new_app_password);
-    if (normalized.length !== APP_PASSWORD_LENGTH) {
-      errors.push({
-        field: 'new_app_password',
-        message: `must be exactly ${APP_PASSWORD_LENGTH} lowercase letters (Google app password)`,
-      });
-    } else if (!/^[a-z]+$/.test(normalized)) {
-      errors.push({
-        field: 'new_app_password',
-        message: 'must contain only lowercase letters [a-z]',
-      });
-    }
-  }
-
-  if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, data: { new_app_password_normalized: normalized } };
+  const parsed = rotateEmailBodySchema.safeParse(value);
+  if (!parsed.success) return { ok: false, errors: zodIssuesToErrors(parsed.error) };
+  return { ok: true, data: { new_app_password_normalized: parsed.data.new_app_password } };
 }
 
 // ---------------------------------------------------------------------------
