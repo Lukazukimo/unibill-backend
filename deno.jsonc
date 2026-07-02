@@ -13,6 +13,11 @@
     "fmt:check": "deno fmt --check supabase/functions/",
     "lint": "deno lint supabase/functions/"
   },
+  "imports": {
+    // Zod 4 — single source for Edge Function request validation + OpenAPI
+    // (z.toJSONSchema). Adopted incrementally per ADR-0006 / issue #265.
+    "zod": "npm:zod@^4"
+  },
   "fmt": {
     "lineWidth": 100,
     "indentWidth": 2,

@@ -26,3 +26,4 @@ Format: [Nygard ADRs](https://cognitect.com/blog/2011/11/15/documenting-architec
 | [0003](0003-pgmq-over-external-queue.md) | pgmq + pg_cron over an external queue | Accepted | 2026-06-08 |
 | [0004](0004-sentinel-actors-table.md) | Sentinel actors in their own table over auth.users pollution | Accepted | 2026-06-25 |
 | [0005](0005-apache-2-license.md) | Apache 2.0 over MIT / AGPL | Accepted | 2026-06-08 |
+| [0006](0006-adopt-zod-validation.md) | Adopt Zod for Edge Function request validation | Accepted | 2026-07-02 |
