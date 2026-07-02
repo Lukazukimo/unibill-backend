@@ -39,6 +39,8 @@ import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import { createHouseholdBodySchema } from '../_shared/schemas/households.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -62,8 +64,12 @@ export type HandlerDeps = {
   emitEvent?: EmitEventFn;
 };
 
-/** Max household display-name length (matches the mobile form validator). */
-export const NAME_MAX = 80;
+/**
+ * `NAME_MAX` now lives with `createHouseholdBodySchema` (single source — issue
+ * #265 / ADR-0006); re-exported here for existing importers. Matches the mobile
+ * form validator.
+ */
+export { NAME_MAX } from '../_shared/schemas/households.ts';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -77,8 +83,10 @@ function jsonResponse(status: number, body: unknown): Response {
 }
 
 /**
- * Validates `{ name: string }`, returning the trimmed name on success. The name
- * must be non-empty after trimming and at most [NAME_MAX] chars.
+ * Valida `{ name }` contra `createHouseholdBodySchema` (Zod — fonte única, #265
+ * / ADR-0006). Mantém a mesma união discriminada do validator hand-written; o
+ * payload `422 details` é idêntico para bodies escalares/objeto (array cai na
+ * mensagem whole-body, mais correto). No success `data.name` já vem trimado.
  */
 export function validateCreateBody(value: unknown): {
   ok: true;
@@ -87,23 +95,9 @@ export function validateCreateBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  if (!value || typeof value !== 'object') {
-    return { ok: false, errors: [{ field: '', message: 'body must be a JSON object' }] };
-  }
-  const v = value as Record<string, unknown>;
-
-  if (typeof v.name !== 'string') {
-    return { ok: false, errors: [{ field: 'name', message: 'must be a string' }] };
-  }
-  const name = v.name.trim();
-  const errors: Array<{ field: string; message: string }> = [];
-  if (name.length < 1) {
-    errors.push({ field: 'name', message: 'must not be empty' });
-  } else if (name.length > NAME_MAX) {
-    errors.push({ field: 'name', message: `must be at most ${NAME_MAX} chars` });
-  }
-  if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, data: { name } };
+  const parsed = createHouseholdBodySchema.safeParse(value);
+  if (parsed.success) return { ok: true, data: parsed.data };
+  return { ok: false, errors: zodIssuesToErrors(parsed.error) };
 }
 
 // ---------------------------------------------------------------------------
