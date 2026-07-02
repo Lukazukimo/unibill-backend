@@ -5,15 +5,12 @@
 
 ### Features
 
-* **ops:** GET /health — public status + service_role metrics (T-613) ([6fa2272](https://github.com/Lukazukimo/unibill-backend/commit/6fa22729d2f5389d9f0da8870b85f874dde04f0b))
 * **ops:** GET /health — public status + service_role metrics (T-613) ([76dd511](https://github.com/Lukazukimo/unibill-backend/commit/76dd511bb2de777a7e04b7f92d52970df64cc8a9)), closes [#124](https://github.com/Lukazukimo/unibill-backend/issues/124)
 
 
 ### CI / Tooling
 
-* **ops:** Health-monitor + capacity monthly report workflows (T-614) ([8a17289](https://github.com/Lukazukimo/unibill-backend/commit/8a172898087b57f02314c717531a78db58876e90))
 * **ops:** Health-monitor + capacity monthly report workflows (T-614) ([0fc2411](https://github.com/Lukazukimo/unibill-backend/commit/0fc24112d90bd8cbb7e4933fccfb8408117ba298)), closes [#123](https://github.com/Lukazukimo/unibill-backend/issues/123)
-* Publish Deno coverage artifact + summary (T-617, Deno-only scope) ([46672ed](https://github.com/Lukazukimo/unibill-backend/commit/46672ede023ae5733b95221a3a2bd606eb79007e))
 * Publish Deno coverage artifact + summary (T-617, Deno-only scope) ([8c16bad](https://github.com/Lukazukimo/unibill-backend/commit/8c16bad67d554aaa11335ffb7bff5274e45c3248)), closes [#127](https://github.com/Lukazukimo/unibill-backend/issues/127)
 
 
@@ -24,15 +21,10 @@
 
 ### Documentation
 
-* **adr:** Seed ADR directory with the 5 foundational decisions (T-626) ([a18b0cc](https://github.com/Lukazukimo/unibill-backend/commit/a18b0cc1dea3b83176809bf9d03023da51674efc))
 * **adr:** Seed ADR directory with the 5 foundational decisions (T-626) ([18f7451](https://github.com/Lukazukimo/unibill-backend/commit/18f7451e4184ff24f8aac3f69804b9a7d882c7ce)), closes [#136](https://github.com/Lukazukimo/unibill-backend/issues/136)
-* **api:** OpenAPI 3.1 from §E + docs landing (T-625, scoped) ([5f11aad](https://github.com/Lukazukimo/unibill-backend/commit/5f11aad6ed8272e1cbdd903e7f4e531c3406b405))
 * **api:** OpenAPI 3.1 from §E + docs landing (T-625, scoped) ([e838e28](https://github.com/Lukazukimo/unibill-backend/commit/e838e2885333c6764567a95b2db138f310071e0f)), closes [#160](https://github.com/Lukazukimo/unibill-backend/issues/160)
-* **gen:** Auto-generate configuration.md + events.md + Pages publish (T-624) ([9fca54a](https://github.com/Lukazukimo/unibill-backend/commit/9fca54a85dc9ca4c7526f47c5e00eade6ea55a2d))
 * **gen:** Auto-generate configuration.md + events.md + Pages publish (T-624) ([53a2ce7](https://github.com/Lukazukimo/unibill-backend/commit/53a2ce713ca2717616113a9cda4ac89796a07361)), closes [#134](https://github.com/Lukazukimo/unibill-backend/issues/134)
-* **governance:** Exact Apache-2.0 LICENSE, Code of Conduct, 90d disclosure (T-623) ([04e0bbe](https://github.com/Lukazukimo/unibill-backend/commit/04e0bbe20752a85ff17c75e8ba75674a370c6961))
 * **governance:** Exact Apache-2.0 LICENSE, Code of Conduct, 90d disclosure (T-623) ([d9910d6](https://github.com/Lukazukimo/unibill-backend/commit/d9910d6595b550ec42bc2bacce3d9bbffddf7181)), closes [#133](https://github.com/Lukazukimo/unibill-backend/issues/133)
-* **ops:** RUNBOOK.md with the 8 incident/maintenance procedures (T-621) ([0740b01](https://github.com/Lukazukimo/unibill-backend/commit/0740b01474755651791b1320cd3814e8d9a9731c))
 * **ops:** RUNBOOK.md with the 8 incident/maintenance procedures (T-621) ([7383962](https://github.com/Lukazukimo/unibill-backend/commit/738396210ef9dc56d3cae76e2be8962e2f0d3d54)), closes [#131](https://github.com/Lukazukimo/unibill-backend/issues/131)
 
 ## [0.1.7](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.6...v0.1.7) (2026-06-25)
@@ -40,19 +32,14 @@
 
 ### Features
 
-* **lgpd:** Anonymize_user_references + drop audit FKs (T-606) ([0c5617d](https://github.com/Lukazukimo/unibill-backend/commit/0c5617dba987220eba85f7367fe53557b42f82db))
 * **lgpd:** Anonymize_user_references + drop audit FKs to auth.users (T-606) ([ecdfda6](https://github.com/Lukazukimo/unibill-backend/commit/ecdfda676be8d738b6ecc533768d69ce6005ead8)), closes [#116](https://github.com/Lukazukimo/unibill-backend/issues/116)
-* **lgpd:** Consent_log retention cron — IP mask + UA hash + hard ceiling (T-610) ([e107e74](https://github.com/Lukazukimo/unibill-backend/commit/e107e740f3904b6dafe642982eb24ffaa06cbcf6))
 * **lgpd:** Consent_log retention cron — IP mask + UA hash + hard ceiling (T-610) ([df61b59](https://github.com/Lukazukimo/unibill-backend/commit/df61b59c1659f8dbd7435c7487694f63be284984)), closes [#120](https://github.com/Lukazukimo/unibill-backend/issues/120)
-* **lgpd:** Delete-my-account Edge Function (T-609) ([d88b86a](https://github.com/Lukazukimo/unibill-backend/commit/d88b86a19536361600b22e1a4e7a7e37c9523367))
 * **lgpd:** Delete-my-account Edge Function (T-609) ([0d5f5de](https://github.com/Lukazukimo/unibill-backend/commit/0d5f5de62e78b8056f94d829e7eb52d3310384f2)), closes [#119](https://github.com/Lukazukimo/unibill-backend/issues/119)
-* **lgpd:** Export-my-data Edge Function + private-exports bucket (T-608) ([f16165c](https://github.com/Lukazukimo/unibill-backend/commit/f16165c61938953bb53120a3fb50f02d70de964e))
 * **lgpd:** Export-my-data Edge Function + private-exports bucket (T-608) ([b0472c0](https://github.com/Lukazukimo/unibill-backend/commit/b0472c05604be81acea50a06f15f1cbf7459c8cf)), closes [#118](https://github.com/Lukazukimo/unibill-backend/issues/118)
 
 
 ### Tests
 
-* **lgpd:** Anonymize pgTAP + auth.users FK coverage guard (T-607) ([0771e6a](https://github.com/Lukazukimo/unibill-backend/commit/0771e6a1aa0643ac19cbf22fcde0cd491305e80f))
 * **lgpd:** Anonymize_user_references pgTAP + auth.users FK coverage guard (T-607) ([5fc0882](https://github.com/Lukazukimo/unibill-backend/commit/5fc088270d0890b59d8cced6b76ec5535c27b909)), closes [#117](https://github.com/Lukazukimo/unibill-backend/issues/117)
 
 ## [0.1.6](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.5...v0.1.6) (2026-06-25)
@@ -62,13 +49,11 @@
 
 * **capacity:** Archive-domain-events — cold events to jsonl.gz (T-605) ([43f85df](https://github.com/Lukazukimo/unibill-backend/commit/43f85df1a7f4e4ad5028c281a82fb29f1ca27264))
 * **capacity:** Archive-domain-events (cold domain_events → jsonl.gz) ([069c39c](https://github.com/Lukazukimo/unibill-backend/commit/069c39c7400fe8e60b885fbe5ed8ee7e876e5965)), closes [#115](https://github.com/Lukazukimo/unibill-backend/issues/115)
-* **capacity:** Capacity + health + telemetry schema (T-601) ([23a7500](https://github.com/Lukazukimo/unibill-backend/commit/23a7500d714c7060fba71e1a8dd2779c160754c6))
 * **capacity:** Capacity + health + telemetry schema (T-601) ([18cfe47](https://github.com/Lukazukimo/unibill-backend/commit/18cfe478ca49468d245d43ac7c0dc2cbb7ce0a15)), closes [#106](https://github.com/Lukazukimo/unibill-backend/issues/106)
 * **capacity:** Capacity-evictor — tier escalation + PDF archive (T-603) ([12ee38e](https://github.com/Lukazukimo/unibill-backend/commit/12ee38e3f8e65bb4d00534782d9e586d1f41f5b6))
 * **capacity:** Capacity-evictor (tier escalation + PDF archive) ([1b8eb9c](https://github.com/Lukazukimo/unibill-backend/commit/1b8eb9c9a14aaefddc583533d1508d693dacd560)), closes [#111](https://github.com/Lukazukimo/unibill-backend/issues/111)
 * **capacity:** Capacity-monitor edge function (measure + classify + react) ([3af5e7e](https://github.com/Lukazukimo/unibill-backend/commit/3af5e7e01e126b2e84991c5774d8744991429736)), closes [#107](https://github.com/Lukazukimo/unibill-backend/issues/107)
 * **capacity:** Capacity-monitor edge function (T-602) ([78f7d57](https://github.com/Lukazukimo/unibill-backend/commit/78f7d5750fd9a3216080fdd7aa8f71cf979262ae))
-* **capacity:** Cron schedules for capacity + retention (T-604) ([9c16f94](https://github.com/Lukazukimo/unibill-backend/commit/9c16f94a7eff1214fab3bbee936a769755e31325))
 * **capacity:** Cron schedules for capacity + retention (T-604) ([7283a32](https://github.com/Lukazukimo/unibill-backend/commit/7283a32de5ce0b50cca7b0dc4bfe9055319ec4fe)), closes [#114](https://github.com/Lukazukimo/unibill-backend/issues/114)
 
 
@@ -91,7 +76,6 @@
 * **extraction:** Chain-level circuit breaker for the OCR/AI provider chains ([d7f6510](https://github.com/Lukazukimo/unibill-backend/commit/d7f6510fc947bafba9cd6f40c95d62e214c78b77)), closes [#60](https://github.com/Lukazukimo/unibill-backend/issues/60)
 * **extraction:** Extracted_payload v1 contract + invoices writer mapper ([08ac070](https://github.com/Lukazukimo/unibill-backend/commit/08ac070f9e067cde1ec867e9eefa7b267d65d578)), closes [#75](https://github.com/Lukazukimo/unibill-backend/issues/75)
 * **extraction:** Extraction-worker shell — pgmq consumer + persist + events ([d94a002](https://github.com/Lukazukimo/unibill-backend/commit/d94a0024d061443e20da906b37a14deb4346c242)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65)
-* **extraction:** P5 close-out — Vault setup for provider API keys + redaction (T-403) ([9b87d29](https://github.com/Lukazukimo/unibill-backend/commit/9b87d29f894d594521aca1741f8b8a4f9db03f51))
 * **extraction:** P5 slice D2 — AI chain + chain-level breaker ([dcd78a7](https://github.com/Lukazukimo/unibill-backend/commit/dcd78a74b40918b2ece4f4ef6515480a3ba86363))
 * **extraction:** P5 slice E1 — extracted_payload v1 contract + invoices writer ([0839cfb](https://github.com/Lukazukimo/unibill-backend/commit/0839cfbe18db0fa32e8e8dd05352e57b7bab0f8e))
 * **extraction:** P5 slice E2 — 4-layer cascade orchestrator ([cff916b](https://github.com/Lukazukimo/unibill-backend/commit/cff916b1615f7d8e6e1f1b3e2890fff5fe80437b))
@@ -121,7 +105,6 @@
 
 ### Bug Fixes
 
-* **ci:** Auth-hibp — skip hosted-only HIBP on the local stack; closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213) (T-226) ([7b4b635](https://github.com/Lukazukimo/unibill-backend/commit/7b4b635f76565ff6bd455aacb109e8241e1bf5dd))
 * **ci:** Auth-hibp — skip the hosted-only HIBP cases on the local stack (T-226) ([0fb5e0e](https://github.com/Lukazukimo/unibill-backend/commit/0fb5e0eae6b7372cd5fea04cae63f767f35a30cf)), closes [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
 * **extraction:** Preserve PDF bytes across Layer 1 (pdfjs detaches the buffer) ([04c5b7f](https://github.com/Lukazukimo/unibill-backend/commit/04c5b7ffafb955444cb693f430c9a4eae49eaa0a)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65)
 
@@ -129,7 +112,6 @@
 ### Tests
 
 * **db:** Add the 4 missing P4 test suites (T-330, T-331, T-332, T-334) ([ab994b3](https://github.com/Lukazukimo/unibill-backend/commit/ab994b3be630ba1a5a5555233c9d5536512e138f)), closes [#41](https://github.com/Lukazukimo/unibill-backend/issues/41) [#43](https://github.com/Lukazukimo/unibill-backend/issues/43) [#45](https://github.com/Lukazukimo/unibill-backend/issues/45) [#42](https://github.com/Lukazukimo/unibill-backend/issues/42) [#213](https://github.com/Lukazukimo/unibill-backend/issues/213)
-* **db:** Add the 4 missing P4 test suites (T-330/T-331/T-332/T-334) ([289d111](https://github.com/Lukazukimo/unibill-backend/commit/289d111be9caf286fe8d12ccdfbdf68c12376704))
 * **db:** Cross-binding sync_runs RLS coverage (T-309) ([fabfb90](https://github.com/Lukazukimo/unibill-backend/commit/fabfb90a0171b6043c876841ce6ead8480d48da2)), closes [#17](https://github.com/Lukazukimo/unibill-backend/issues/17)
 * **extraction:** Consolidated §7.5.1 failure→status spec table ([e6f4157](https://github.com/Lukazukimo/unibill-backend/commit/e6f415792f4bf5c1533594cef08e2df0cbe3d39e)), closes [#73](https://github.com/Lukazukimo/unibill-backend/issues/73)
 * **extraction:** End-to-end extraction-worker integration suite ([0a33b8e](https://github.com/Lukazukimo/unibill-backend/commit/0a33b8ec807c1ab6287ad826737e693e2b1bac4d)), closes [#65](https://github.com/Lukazukimo/unibill-backend/issues/65) [#72](https://github.com/Lukazukimo/unibill-backend/issues/72)
@@ -189,13 +171,11 @@
 
 ### Features
 
-* **functions:** Households-create — atomic household + creator-admin (T-516) ([6857943](https://github.com/Lukazukimo/unibill-backend/commit/685794342c6d679365e4b6d7fa9f35849c170117))
 * **functions:** Households-create — atomic household + creator-admin (T-516) ([3124b13](https://github.com/Lukazukimo/unibill-backend/commit/3124b13635ad50bcecd84d9d820d6b081f82601f))
 
 
 ### CI / Tooling
 
-* **deploy:** Push auth/api config in the dev-deploy plan ([040798b](https://github.com/Lukazukimo/unibill-backend/commit/040798b945764de5027c8c66064b4051f6377a28))
 * **deploy:** Push auth/api config in the dev-deploy plan ([8ed65ec](https://github.com/Lukazukimo/unibill-backend/commit/8ed65ecffcb8fd97bceb3852c2ecda71f2ad02c9))
 
 ## [0.1.2](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.1...v0.1.2) (2026-06-11)
@@ -204,14 +184,11 @@
 ### Bug Fixes
 
 * **ci:** Unblock migration-lint, config-drift, and test-deno jobs ([fcb276c](https://github.com/Lukazukimo/unibill-backend/commit/fcb276c2a8da5c831bf95581714772d7d8c3bf0a))
-* **ci:** Unblock migration-lint, config-drift, test-deno (3 mechanical fixes) ([d6402b4](https://github.com/Lukazukimo/unibill-backend/commit/d6402b47f5a4b056aa7f0fd24a4be572a9b42ff2))
-* **functions:** Resolve 29 TS errors revealed by test-deno (9 files) ([33a3103](https://github.com/Lukazukimo/unibill-backend/commit/33a310361ca5ea0495ba45d8acbb3895b2052a9d))
 * **functions:** Resolve 29 TS errors revealed by test-deno (9 files) ([a6743f8](https://github.com/Lukazukimo/unibill-backend/commit/a6743f8da57abfa8b475b6396aa0e03f6eef9b53))
 * **functions:** Use nonNull() helper instead of broken NonNullable cast ([64410d2](https://github.com/Lukazukimo/unibill-backend/commit/64410d253a2cd04a8d32ced952be54a964390ef5))
 * **lint:** AUDIT-AUTH-OK annotation for Supabase signup hook (last migration-lint error) ([7c136ae](https://github.com/Lukazukimo/unibill-backend/commit/7c136aeb3e29d7753ccd2669c7f4f64e5d4937a2))
 * **lint:** Resolve 8 deno lint errors after fmt pass ([fff65ff](https://github.com/Lukazukimo/unibill-backend/commit/fff65ff962f86b56b1a3ad4fb969c264909c0908))
 * **lint:** Support AUDIT-AUTH-OK annotation for Supabase signup hook ([670242d](https://github.com/Lukazukimo/unibill-backend/commit/670242d22a399d08b8283b0c5f97c53a1881cfd6))
-* **lint:** Tighten no-auth-objects regex + add 8 AUDIT-FK-OK annotations ([dbc6079](https://github.com/Lukazukimo/unibill-backend/commit/dbc607960f47b68d162e131bbf7b9a699f5d59d3))
 * **lint:** Tighten no-auth-objects regex + add AUDIT-FK-OK annotations ([5077b3b](https://github.com/Lukazukimo/unibill-backend/commit/5077b3b93584b0cc65df0dbac2bbaeca490b9095))
 * **tests:** Pass explicit generic to nonNull&lt;T&gt;(X) calls ([7b5fd89](https://github.com/Lukazukimo/unibill-backend/commit/7b5fd8999e30b535609c7869498d39971c4b649d))
 * **tests:** Re-place nonNull import outside multi-line existing imports ([a6650d3](https://github.com/Lukazukimo/unibill-backend/commit/a6650d302b4f031b1cd0f12db5e50b0086b2ea35))
