@@ -13,13 +13,24 @@ import type { ZodError } from 'zod';
 export type FieldError = { field: string; message: string };
 
 /**
- * Flattens a `ZodError` into `{ field, message }[]`. The `field` is the issue
- * path joined with `.` (an empty path — a top-level/object error — maps to `''`,
- * matching the hand-written validators' convention for whole-body failures).
+ * Renders a Zod issue path into the repo's `field` convention: object keys are
+ * dot-joined and array indices use bracket notation, so `['household_ids', 0]`
+ * becomes `household_ids[0]` (matching the hand-written validators) and an empty
+ * path (a top-level/object error) becomes `''`.
  */
+function renderPath(path: ReadonlyArray<PropertyKey>): string {
+  let out = '';
+  for (const seg of path) {
+    if (typeof seg === 'number') out += `[${seg}]`;
+    else out += out === '' ? String(seg) : `.${String(seg)}`;
+  }
+  return out;
+}
+
+/** Flattens a `ZodError` into the repo's `{ field, message }[]` shape. */
 export function zodIssuesToErrors(error: ZodError): FieldError[] {
   return error.issues.map((issue) => ({
-    field: issue.path.map(String).join('.'),
+    field: renderPath(issue.path),
     message: issue.message,
   }));
 }
