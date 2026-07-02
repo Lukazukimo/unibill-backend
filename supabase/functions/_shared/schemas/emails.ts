@@ -96,3 +96,14 @@ export const connectEmailBodySchema = z.object({
 }, { message: 'body must be a JSON object' });
 
 export type ConnectEmailBody = z.infer<typeof connectEmailBodySchema>;
+
+/**
+ * Body for `PATCH /emails/{id}/rotate-password`: `{ new_app_password }`. Reuses
+ * the exact same `appPasswordField` rule as connect — one app-password contract
+ * serving two endpoints (the single-source payoff of #265 / ADR-0006).
+ */
+export const rotateEmailBodySchema = z.object({
+  new_app_password: appPasswordField,
+}, { message: 'body must be a JSON object' });
+
+export type RotateEmailBody = z.infer<typeof rotateEmailBodySchema>;

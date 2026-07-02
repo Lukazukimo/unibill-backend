@@ -3,7 +3,7 @@
 // with dedup, field renames). Pins the exact 422 `details` arrays. Ref: #265.
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
-import { connectEmailBodySchema } from './emails.ts';
+import { connectEmailBodySchema, rotateEmailBodySchema } from './emails.ts';
 import { zodIssuesToErrors } from '../zodError.ts';
 
 const UUID_A = '11111111-1111-4111-8111-111111111111';
@@ -132,4 +132,39 @@ Deno.test('connectEmailBodySchema accepts multiple distinct household_ids', () =
   });
   assert(r.success);
   if (r.success) assertEquals(r.data.household_ids, [UUID_A, UUID_B]);
+});
+
+// rotateEmailBodySchema reuses the same `appPasswordField` as connect — the
+// single-source payoff: one app-password rule, two endpoints. Only the field
+// name (new_app_password) differs.
+Deno.test('rotateEmailBodySchema accepts and normalizes a Google-style password', () => {
+  const r = rotateEmailBodySchema.safeParse({ new_app_password: 'ABCD EFGH IJKL MNOP' });
+  assert(r.success);
+  if (r.success) assertEquals(r.data.new_app_password, 'abcdefghijklmnop');
+});
+
+Deno.test('rotateEmailBodySchema — new_app_password single-error contract', () => {
+  const cases: Array<[unknown, string]> = [
+    [123, 'must be a string'],
+    ['short', 'must be exactly 16 lowercase letters (Google app password)'],
+    ['abcd1234efgh5678', 'must contain only lowercase letters [a-z]'],
+  ];
+  for (const [pw, message] of cases) {
+    const r = rotateEmailBodySchema.safeParse({ new_app_password: pw });
+    assert(!r.success);
+    if (!r.success) {
+      assertEquals(zodIssuesToErrors(r.error), [{ field: 'new_app_password', message }]);
+    }
+  }
+});
+
+Deno.test('rotateEmailBodySchema rejects a non-object body', () => {
+  const r = rotateEmailBodySchema.safeParse('nope');
+  assert(!r.success);
+  if (!r.success) {
+    assertEquals(zodIssuesToErrors(r.error)[0], {
+      field: '',
+      message: 'body must be a JSON object',
+    });
+  }
 });
