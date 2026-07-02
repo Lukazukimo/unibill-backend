@@ -81,6 +81,8 @@ import { buildServiceClient, floorToWindow } from '../_shared/lockout.ts';
 import { extractClientIp } from '../_shared/captcha.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import { redeemBodySchema } from '../_shared/schemas/invitations.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -110,15 +112,13 @@ export type HandlerDeps = {
 // Constants — keep aligned with spec §9.1 + migration T-227
 // ---------------------------------------------------------------------------
 
-/** Code length — fixed by spec §9.1. */
-export const CODE_LENGTH = 8;
-
 /**
- * Base32 sem confundíveis (sem I, L, O, 0, 1). Casa com o CHECK constraint
- * `household_invitations_code_format_chk` definido em T-227. ~32^8 ≈ 1.1
- * trilhão de combinações.
+ * `CODE_LENGTH` / `CODE_RE` now live with `redeemBodySchema` (single source —
+ * issue #265 / ADR-0006); re-exported here for existing importers. Both still
+ * mirror spec §9.1 + the CHECK constraint `household_invitations_code_format_chk`
+ * (migration T-227). ~32^8 ≈ 1.1 trilhão de combinações.
  */
-export const CODE_RE = /^[A-HJ-NP-Z2-9]{8}$/;
+export { CODE_LENGTH, CODE_RE } from '../_shared/schemas/invitations.ts';
 
 /** Rate-limit resource type compartilhado entre os dois buckets de redeem. */
 export const RL_RESOURCE_REDEEM = 'invite_redeem';
@@ -170,8 +170,11 @@ export function normalizeCode(raw: string): string {
 }
 
 /**
- * Valida o corpo `{ code: string(8 chars, base32 sem confundíveis) }`.
- * Retorna o code já normalizado (uppercase) na success path.
+ * Valida o corpo `{ code: string(8 chars, base32 sem confundíveis) }` contra
+ * `redeemBodySchema` (Zod — fonte única, #265 / ADR-0006). Mantém a mesma união
+ * discriminada do validator hand-written; o payload `422 details` é idêntico
+ * para bodies escalares/objeto (array agora cai na mensagem whole-body, mais
+ * correto). No success `data.code` já vem normalizado (trim + uppercase).
  */
 export function validateRedeemBody(value: unknown): {
   ok: true;
@@ -180,27 +183,9 @@ export function validateRedeemBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  const errors: Array<{ field: string; message: string }> = [];
-
-  if (!value || typeof value !== 'object') {
-    return { ok: false, errors: [{ field: '', message: 'body must be a JSON object' }] };
-  }
-  const v = value as Record<string, unknown>;
-
-  if (typeof v.code !== 'string') {
-    return { ok: false, errors: [{ field: 'code', message: 'must be a string' }] };
-  }
-  const code = normalizeCode(v.code);
-  if (code.length !== CODE_LENGTH) {
-    errors.push({ field: 'code', message: `must be exactly ${CODE_LENGTH} chars` });
-  } else if (!CODE_RE.test(code)) {
-    errors.push({
-      field: 'code',
-      message: 'must match base32 alphabet [A-HJ-NP-Z2-9] (no I, L, O, 0, 1)',
-    });
-  }
-  if (errors.length > 0) return { ok: false, errors };
-  return { ok: true, data: { code } };
+  const parsed = redeemBodySchema.safeParse(value);
+  if (parsed.success) return { ok: true, data: parsed.data };
+  return { ok: false, errors: zodIssuesToErrors(parsed.error) };
 }
 
 // ---------------------------------------------------------------------------
