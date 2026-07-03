@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.9](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.8...v0.1.9) (2026-07-03)
+
+
+### Refactors
+
+* **docs:** Derive OpenAPI request bodies from Zod schemas ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265)) ([#274](https://github.com/Lukazukimo/unibill-backend/issues/274)) ([e351c2e](https://github.com/Lukazukimo/unibill-backend/commit/e351c2efff289c4a46f39b555625f64fcd1f44b7))
+* **validation:** Adopt Zod for consent-accept + consent-revoke ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265)) ([#273](https://github.com/Lukazukimo/unibill-backend/issues/273)) ([e5d24d9](https://github.com/Lukazukimo/unibill-backend/commit/e5d24d919b5db22068f1d756e3924dc7e44c9b0b))
+* **validation:** Adopt Zod for emails-connect ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265)) ([#271](https://github.com/Lukazukimo/unibill-backend/issues/271)) ([e710b77](https://github.com/Lukazukimo/unibill-backend/commit/e710b77681777ea9f6c69b5f77965b767cfd9172))
+* **validation:** Adopt Zod for emails-rotate ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265)) ([#272](https://github.com/Lukazukimo/unibill-backend/issues/272)) ([fb84fbd](https://github.com/Lukazukimo/unibill-backend/commit/fb84fbd2201d1d91d202adaad0431b793be6b699))
+* **validation:** Adopt Zod for households-create ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265)) ([#270](https://github.com/Lukazukimo/unibill-backend/issues/270)) ([73a2807](https://github.com/Lukazukimo/unibill-backend/commit/73a2807d060cb42c25c5fc7593abbbcce4c8c2e7))
+* **validation:** Adopt Zod for invitations-redeem ([#265](https://github.com/Lukazukimo/unibill-backend/issues/265) pilot) ([#268](https://github.com/Lukazukimo/unibill-backend/issues/268)) ([8984848](https://github.com/Lukazukimo/unibill-backend/commit/8984848e3562354f7ab415d6d23dc1ab93b08d90))
+
 ## [0.1.8](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.7...v0.1.8) (2026-06-26)
 
 
