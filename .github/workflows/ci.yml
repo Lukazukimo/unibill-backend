@@ -170,6 +170,12 @@ jobs:
       - name: Check openapi.yaml is up to date
         run: deno run --allow-read --allow-write scripts/gen_openapi.ts --check
 
+      # schema.dbml is parsed statically from the migrations (no DB needed), so
+      # its drift check lives here rather than in test-db (issue #266a). The
+      # rendered docs/schema.svg is a convenience snapshot regenerated from it.
+      - name: Check schema.dbml is up to date
+        run: deno run --allow-read --allow-write scripts/gen_dbml.ts --check
+
       # Validate the OpenAPI spec for real (not just parse/structure) — issue
       # #266. Ruleset in redocly.yaml. The ubuntu runner ships Node, so npx is
       # available without a setup step. Pinned for reproducibility.
