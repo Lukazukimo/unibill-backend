@@ -67,31 +67,23 @@ import { withCorrelation } from '../_shared/correlation.ts';
 import { buildServiceClient } from '../_shared/lockout.ts';
 import { redactSecrets } from '../_shared/redact.ts';
 import { type DomainEventInput, emitDomainEvent } from '../_shared/events.ts';
+import {
+  acceptConsentBodySchema,
+  CONSENT_PURPOSES,
+  type ConsentPurpose,
+  LEGAL_BASES,
+  type LegalBasis,
+} from '../_shared/schemas/consent.ts';
+import { zodIssuesToErrors } from '../_shared/zodError.ts';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type ConsentPurpose = 'terms' | 'privacy' | 'telemetry' | 'marketing';
-export type LegalBasis =
-  | 'consent'
-  | 'legitimate_interest'
-  | 'legal_obligation'
-  | 'contract';
-
-export const CONSENT_PURPOSES: ReadonlyArray<ConsentPurpose> = [
-  'terms',
-  'privacy',
-  'telemetry',
-  'marketing',
-] as const;
-
-export const LEGAL_BASES: ReadonlyArray<LegalBasis> = [
-  'consent',
-  'legitimate_interest',
-  'legal_obligation',
-  'contract',
-] as const;
+// Consent enums + types are the single source in `_shared/schemas/consent.ts`
+// (#265 / ADR-0006); re-exported here for existing importers.
+export { CONSENT_PURPOSES, LEGAL_BASES };
+export type { ConsentPurpose, LegalBasis };
 
 export type AcceptConsentRequest = {
   purpose: ConsentPurpose;
@@ -135,7 +127,6 @@ export type HandlerDeps = {
 // Constants
 // ---------------------------------------------------------------------------
 
-const VERSION_MAX_LENGTH = 64;
 const USER_AGENT_MAX_LENGTH = 512;
 const PG_UNIQUE_VIOLATION = '23505';
 
@@ -217,81 +208,9 @@ export function validateAcceptBody(value: unknown): {
   ok: false;
   errors: Array<{ field: string; message: string }>;
 } {
-  const errors: Array<{ field: string; message: string }> = [];
-
-  if (!value || typeof value !== 'object') {
-    return {
-      ok: false,
-      errors: [{ field: '', message: 'body must be a JSON object' }],
-    };
-  }
-  const v = value as Record<string, unknown>;
-
-  // purpose
-  let purpose: ConsentPurpose | null = null;
-  if (typeof v.purpose !== 'string') {
-    errors.push({ field: 'purpose', message: 'must be a string' });
-  } else if (!CONSENT_PURPOSES.includes(v.purpose as ConsentPurpose)) {
-    errors.push({
-      field: 'purpose',
-      message: `must be one of: ${CONSENT_PURPOSES.join(', ')}`,
-    });
-  } else {
-    purpose = v.purpose as ConsentPurpose;
-  }
-
-  // version
-  let version = '';
-  if (typeof v.version !== 'string') {
-    errors.push({ field: 'version', message: 'must be a string' });
-  } else {
-    version = v.version.trim();
-    if (version.length === 0) {
-      errors.push({ field: 'version', message: 'must not be empty' });
-    } else if (version.length > VERSION_MAX_LENGTH) {
-      errors.push({
-        field: 'version',
-        message: `max ${VERSION_MAX_LENGTH} chars`,
-      });
-    }
-  }
-
-  // legal_basis
-  let legalBasis: LegalBasis | null = null;
-  if (typeof v.legal_basis !== 'string') {
-    errors.push({ field: 'legal_basis', message: 'must be a string' });
-  } else if (!LEGAL_BASES.includes(v.legal_basis as LegalBasis)) {
-    errors.push({
-      field: 'legal_basis',
-      message: `must be one of: ${LEGAL_BASES.join(', ')}`,
-    });
-  } else {
-    legalBasis = v.legal_basis as LegalBasis;
-  }
-
-  // revoke_existing (optional)
-  let revokeExisting = false;
-  if (v.revoke_existing !== undefined) {
-    if (typeof v.revoke_existing !== 'boolean') {
-      errors.push({
-        field: 'revoke_existing',
-        message: 'must be a boolean if provided',
-      });
-    } else {
-      revokeExisting = v.revoke_existing;
-    }
-  }
-
-  if (errors.length > 0) return { ok: false, errors };
-  return {
-    ok: true,
-    data: {
-      purpose: purpose!,
-      version,
-      legal_basis: legalBasis!,
-      revoke_existing: revokeExisting,
-    },
-  };
+  const parsed = acceptConsentBodySchema.safeParse(value);
+  if (!parsed.success) return { ok: false, errors: zodIssuesToErrors(parsed.error) };
+  return { ok: true, data: parsed.data };
 }
 
 // ---------------------------------------------------------------------------
