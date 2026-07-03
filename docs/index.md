@@ -27,7 +27,8 @@ as a site.
 ## Architecture
 
 - [ADRs](adr/) — architecture decision records (Supabase, Flutter, pgmq, sentinels, Apache 2.0)
-- [ERD (P0)](erd-p0.md) — entity-relationship diagram
+- [Schema diagram](schema.svg) — every `public` table + enums + foreign keys, rendered from [`schema.dbml`](schema.dbml) (generated from the migrations by `scripts/gen_dbml.ts`)
+- [ERD (P0)](erd-p0.md) — hand-drawn P0 entity-relationship diagram
 - Full design spec & implementation plan live under `docs/superpowers/`
 
 ## Contributing
