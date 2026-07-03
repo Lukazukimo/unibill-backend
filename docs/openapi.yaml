@@ -6,8 +6,8 @@ info:
   version: 0.1.0
   description: >-
     User-facing & admin Edge Functions (spec §E). Internal workers (sync/extraction/capacity,
-    cron-invoked) are not part of the public API. Authored from §E — request validation is
-    hand-written, not Zod.
+    cron-invoked) are not part of the public API. Request bodies with a Zod schema are derived from
+    it (z.toJSONSchema); the rest are authored from §E.
   license:
     name: Apache-2.0
     url: 'https://www.apache.org/licenses/LICENSE-2.0'
@@ -83,13 +83,17 @@ paths:
               properties:
                 email_address:
                   type: string
-                  format: email
+                  minLength: 1
                   maxLength: 254
+                  pattern: '^[^\s@]+@[^\s@]+\.[^\s@]+$'
                 app_password:
                   type: string
-                  description: 16-char Gmail app password
+                  minLength: 16
+                  maxLength: 16
+                  pattern: '^[a-z]+$'
                 household_ids:
                   type: array
+                  minItems: 1
                   items:
                     type: string
                     format: uuid
@@ -97,6 +101,7 @@ paths:
                 - email_address
                 - app_password
                 - household_ids
+              additionalProperties: false
       responses:
         '200':
           description: Connected
@@ -156,8 +161,12 @@ paths:
               properties:
                 new_app_password:
                   type: string
+                  minLength: 16
+                  maxLength: 16
+                  pattern: '^[a-z]+$'
               required:
                 - new_app_password
+              additionalProperties: false
       responses:
         '200':
           description: Rotated
@@ -198,8 +207,10 @@ paths:
                   type: string
                   minLength: 8
                   maxLength: 8
+                  pattern: '^[A-HJ-NP-Z2-9]{8}$'
               required:
                 - code
+              additionalProperties: false
       responses:
         '200':
           description: Joined household

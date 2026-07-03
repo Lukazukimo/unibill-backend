@@ -3,18 +3,24 @@
 // scripts/gen_openapi.ts
 // -----------------------------------------------------------------------------
 // Emit `docs/openapi.yaml` (OpenAPI 3.1) for the user-facing & admin Edge
-// Functions. The spec called for "zod-to-openapi", but the implementation
-// validates request bodies with hand-written validators (no Zod dependency —
-// see the "adopt Zod" follow-up / ADR), so there are no Zod schemas to
-// introspect. The source of truth here is spec Appendix §E (API contracts),
-// encoded as a structured TS object below and serialised to YAML.
+// Functions. Request bodies that have a Zod schema (invitations-redeem,
+// emails-connect, emails-rotate) are DERIVED from it via `z.toJSONSchema`
+// (#265 / ADR-0006), so those bodies can't drift from the runtime validator.
+// The remaining endpoints (no Zod schema — query-param, path-only, or bodies
+// not yet migrated) and all responses are authored from spec Appendix §E.
 //
 // Mirrors the other generators: --check (CI drift, exit 1 on diff), --out.
-// Task: T-625 (#160). Spec refs: §E.
-// Date: 2026-06-25
+// Task: T-625 (#160) + gen-from-Zod follow-up. Spec refs: §E.
+// Date: 2026-07-02
 // =============================================================================
 
 import { stringify } from 'jsr:@std/yaml@^1';
+import { z } from 'zod';
+import { redeemBodySchema } from '../supabase/functions/_shared/schemas/invitations.ts';
+import {
+  connectEmailBodySchema,
+  rotateEmailBodySchema,
+} from '../supabase/functions/_shared/schemas/emails.ts';
 
 // deno-lint-ignore no-explicit-any
 type Json = any;
@@ -50,6 +56,24 @@ function jsonBody(properties: Json, required: string[] = []): Json {
   };
 }
 
+/**
+ * Derives an OpenAPI requestBody schema from a Zod schema (`#265` / ADR-0006) so
+ * the documented request shape can never drift from the runtime validator.
+ * Uses `io: 'output'` because the schemas normalize (`.transform`) before
+ * validating, so the length/pattern constraints live on the output side; input
+ * mode would erase them. `unrepresentable: 'any'` lets a field whose validation
+ * isn't expressible in JSON Schema (e.g. the `household_ids` dedup superRefine)
+ * through as `{}`, which `overrides` then replaces with a hand-written shape.
+ */
+function zodBody(schema: z.ZodType, overrides: Record<string, Json> = {}): Json {
+  const jsonSchema = z.toJSONSchema(schema, { io: 'output', unrepresentable: 'any' }) as Json;
+  delete jsonSchema.$schema;
+  if (Object.keys(overrides).length > 0) {
+    jsonSchema.properties = { ...jsonSchema.properties, ...overrides };
+  }
+  return { required: true, content: { 'application/json': { schema: jsonSchema } } };
+}
+
 const idParam = {
   name: 'id',
   in: 'path',
@@ -66,7 +90,8 @@ export function buildOpenApiDoc(): Json {
       version: '0.1.0',
       description: 'User-facing & admin Edge Functions (spec §E). Internal workers ' +
         '(sync/extraction/capacity, cron-invoked) are not part of the public API. ' +
-        'Authored from §E — request validation is hand-written, not Zod.',
+        'Request bodies with a Zod schema are derived from it (z.toJSONSchema); ' +
+        'the rest are authored from §E.',
       license: { name: 'Apache-2.0', url: 'https://www.apache.org/licenses/LICENSE-2.0' },
     },
     servers: [{
@@ -112,11 +137,15 @@ export function buildOpenApiDoc(): Json {
       '/emails/connect': {
         post: {
           summary: 'Connect a Gmail (IMAP) mailbox',
-          requestBody: jsonBody({
-            email_address: { type: 'string', format: 'email', maxLength: 254 },
-            app_password: { type: 'string', description: '16-char Gmail app password' },
-            household_ids: { type: 'array', items: { type: 'string', format: 'uuid' } },
-          }, ['email_address', 'app_password', 'household_ids']),
+          // household_ids' dedup superRefine isn't expressible in JSON Schema —
+          // override it with the documented array/uuid shape.
+          requestBody: zodBody(connectEmailBodySchema, {
+            household_ids: {
+              type: 'array',
+              minItems: 1,
+              items: { type: 'string', format: 'uuid' },
+            },
+          }),
           responses: {
             '200': ok('Connected', {
               connected_email_id: { type: 'string', format: 'uuid' },
@@ -141,7 +170,7 @@ export function buildOpenApiDoc(): Json {
         patch: {
           summary: 'Rotate the stored app password (owner only)',
           parameters: [idParam],
-          requestBody: jsonBody({ new_app_password: { type: 'string' } }, ['new_app_password']),
+          requestBody: zodBody(rotateEmailBodySchema),
           responses: {
             '200': ok('Rotated', { rotated_at: { type: 'string', format: 'date-time' } }),
           },
@@ -157,7 +186,7 @@ export function buildOpenApiDoc(): Json {
       '/invitations/redeem': {
         post: {
           summary: 'Redeem a household invitation code',
-          requestBody: jsonBody({ code: { type: 'string', minLength: 8, maxLength: 8 } }, ['code']),
+          requestBody: zodBody(redeemBodySchema),
           responses: {
             '200': ok('Joined household', {
               household_id: { type: 'string', format: 'uuid' },

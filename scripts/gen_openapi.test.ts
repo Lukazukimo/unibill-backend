@@ -1,6 +1,6 @@
-// Tests for scripts/gen_openapi.ts — the §E → OpenAPI document builder.
-// Ref: T-625 (#160), spec §E. (Authored from §E: the project has no Zod schemas
-// to introspect — see ADR follow-up.)
+// Tests for scripts/gen_openapi.ts — the OpenAPI document builder.
+// Ref: T-625 (#160) + the gen-from-Zod follow-up (#265): request bodies with a
+// Zod schema are derived from it; the rest are authored from §E.
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import { buildOpenApiDoc } from './gen_openapi.ts';
@@ -61,4 +61,27 @@ Deno.test('public endpoints carry their documented error codes', () => {
   // /privacy/my-account documents 400 + 422
   const del = doc.paths['/privacy/my-account'].delete.responses;
   assert(del['400'] && del['422']);
+});
+
+// Schema-backed request bodies are DERIVED from the Zod schemas (#265): the
+// generated JSON Schema must carry the runtime constraints, not a hand-written
+// stand-in. If a validator's schema changes, this + the --check drift gate fail.
+Deno.test('request bodies are derived from the Zod validators', () => {
+  // deno-lint-ignore no-explicit-any
+  const doc = buildOpenApiDoc() as any;
+  const bodySchema = (path: string, method: string) =>
+    doc.paths[path][method].requestBody.content['application/json'].schema;
+
+  const redeem = bodySchema('/invitations/redeem', 'post');
+  assertEquals(redeem.properties.code.pattern, '^[A-HJ-NP-Z2-9]{8}$');
+  assertEquals(redeem.additionalProperties, false);
+
+  const connect = bodySchema('/emails/connect', 'post');
+  assertEquals(connect.properties.app_password.minLength, 16);
+  assertEquals(connect.properties.app_password.pattern, '^[a-z]+$');
+  // household_ids' dedup superRefine isn't representable → overridden shape.
+  assertEquals(connect.properties.household_ids.items.format, 'uuid');
+
+  const rotate = bodySchema('/emails/{id}/rotate-password', 'patch');
+  assertEquals(rotate.properties.new_app_password.pattern, '^[a-z]+$');
 });
