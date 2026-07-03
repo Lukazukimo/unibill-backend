@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.1.10](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.9...v0.1.10) (2026-07-03)
+
+
+### CI / Tooling
+
+* **docs:** Add Redocly lint for the OpenAPI spec ([#266](https://github.com/Lukazukimo/unibill-backend/issues/266)) ([#275](https://github.com/Lukazukimo/unibill-backend/issues/275)) ([4311fb5](https://github.com/Lukazukimo/unibill-backend/commit/4311fb5ed679ce0fb5a43ac9cdc0426058301d16))
+
+
+### Documentation
+
+* **schema:** Generate schema.dbml + schema.svg from migrations ([#266](https://github.com/Lukazukimo/unibill-backend/issues/266)) ([#277](https://github.com/Lukazukimo/unibill-backend/issues/277)) ([89ad560](https://github.com/Lukazukimo/unibill-backend/commit/89ad560c91b8dc5231ea40ee53ee69ab22283bf6))
+
 ## [0.1.9](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.8...v0.1.9) (2026-07-03)
 
 
