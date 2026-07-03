@@ -71,6 +71,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: getConfigResolve
   /emails/connect:
     post:
       summary: Connect a Gmail (IMAP) mailbox
@@ -141,6 +142,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: postEmailsConnect
   '/emails/{id}/rotate-password':
     patch:
       summary: Rotate the stored app password (owner only)
@@ -178,6 +180,7 @@ paths:
                   rotated_at:
                     type: string
                     format: date-time
+      operationId: patchEmailsIdRotatePassword
   '/emails/{id}':
     delete:
       summary: Soft-delete a connected email (owner or sys admin)
@@ -193,6 +196,7 @@ paths:
                 properties:
                   soft_deleted:
                     type: boolean
+      operationId: deleteEmailsId
   /invitations/redeem:
     post:
       summary: Redeem a household invitation code
@@ -244,6 +248,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: postInvitationsRedeem
   /admin/promote-system-admin:
     post:
       summary: Grant/revoke system-admin (sys admin only)
@@ -290,6 +295,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: postAdminPromoteSystemAdmin
   '/admin/invoices/{id}/reextract':
     post:
       summary: Re-queue an invoice for extraction (sys admin or household member)
@@ -316,6 +322,7 @@ paths:
                     type: boolean
                   idempotency_key:
                     type: string
+      operationId: postAdminInvoicesIdReextract
   /privacy/export-my-data:
     post:
       summary: 'Export the caller''s personal data (LGPD, 1/day)'
@@ -344,6 +351,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: postPrivacyExportMyData
   /privacy/my-account:
     delete:
       summary: Delete the caller's account (LGPD right to erasure)
@@ -383,6 +391,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+      operationId: deletePrivacyMyAccount
   /telemetry/ingest:
     post:
       summary: 'Ingest client telemetry (consent-gated, redacted)'
@@ -420,6 +429,7 @@ paths:
                 properties:
                   ingested:
                     type: integer
+      operationId: postTelemetryIngest
   /health:
     get:
       summary: Health probe (public; service_role bearer adds internal metrics)
@@ -471,3 +481,4 @@ paths:
                 required:
                   - status
                   - timestamp
+      operationId: getHealth

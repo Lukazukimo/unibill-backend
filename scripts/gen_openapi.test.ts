@@ -85,3 +85,19 @@ Deno.test('request bodies are derived from the Zod validators', () => {
   const rotate = bodySchema('/emails/{id}/rotate-password', 'patch');
   assertEquals(rotate.properties.new_app_password.pattern, '^[a-z]+$');
 });
+
+// Every operation carries a unique operationId (#266) — required by the Redocly
+// lint step and by client codegen.
+Deno.test('every operation has a unique operationId', () => {
+  // deno-lint-ignore no-explicit-any
+  const doc = buildOpenApiDoc() as any;
+  const ids: string[] = [];
+  for (const ops of Object.values(doc.paths)) {
+    for (const op of Object.values(ops as Record<string, { operationId?: string }>)) {
+      assert(op.operationId, 'operation missing operationId');
+      ids.push(op.operationId!);
+    }
+  }
+  assertEquals(ids.length, EXPECTED.length);
+  assertEquals(new Set(ids).size, ids.length, 'operationIds must be unique');
+});

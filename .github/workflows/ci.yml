@@ -169,3 +169,9 @@ jobs:
 
       - name: Check openapi.yaml is up to date
         run: deno run --allow-read --allow-write scripts/gen_openapi.ts --check
+
+      # Validate the OpenAPI spec for real (not just parse/structure) — issue
+      # #266. Ruleset in redocly.yaml. The ubuntu runner ships Node, so npx is
+      # available without a setup step. Pinned for reproducibility.
+      - name: Lint OpenAPI with Redocly
+        run: npx --yes @redocly/cli@2.36.0 lint docs/openapi.yaml

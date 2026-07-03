@@ -1,0 +1,10 @@
+# Redocly lint config for docs/openapi.yaml — issue #266.
+# Purpose: validate the OpenAPI spec for real in CI (beyond the parse/structure
+# unit test). Extends the recommended ruleset; one opinion rule is relaxed.
+extends:
+  - recommended
+rules:
+  # Not every operation documents a 4xx: /health and success-only endpoints
+  # (delete-email, rotate-password) rely on the shared bearerAuth 401 rather than
+  # repeating it per-operation. Style opinion — not enforced here.
+  operation-4xx-response: off
