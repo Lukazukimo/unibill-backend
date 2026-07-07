@@ -1,20 +1,19 @@
 # Domain events & business rules
 
 > **Generated** — the sections below are produced by
-> [`scripts/gen_events_doc.ts`](../scripts/gen_events_doc.ts) from the
-> `emitDomainEvent` / `emitEvent` call sites in `supabase/functions/` and the
-> Business Rules catalog (spec §F). **Do not edit between the markers** — re-run
-> the generator (`deno run --allow-read --allow-write scripts/gen_events_doc.ts`).
+> [`scripts/gen_events_doc.ts`](../scripts/gen_events_doc.ts) from the `emitDomainEvent` /
+> `emitEvent` call sites in `supabase/functions/` and the Business Rules catalog (spec §F). **Do not
+> edit between the markers** — re-run the generator
+> (`deno run --allow-read --allow-write scripts/gen_events_doc.ts`).
 >
-> Events are appended to `public.domain_events` (lightweight event sourcing,
-> spec §6.5). See also the [data dictionary](data-dictionary.md) and
-> [configuration reference](configuration.md).
+> Events are appended to `public.domain_events` (lightweight event sourcing, spec §6.5). See also
+> the [data dictionary](data-dictionary.md) and [configuration reference](configuration.md).
 
 <!-- BEGIN-GENERATED:events -->
 
 ## Domain events emitted (from `supabase/functions/`)
 
-22 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
+23 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
 
 | Event type | Emitted by |
 |---|---|
@@ -24,6 +23,7 @@
 | `capacity.eviction.tier_escalated` | `capacity-evictor/index.ts` |
 | `capacity.ingestion.resumed` | `capacity-monitor/index.ts` |
 | `capacity.threshold_crossed` | `capacity-monitor/index.ts` |
+| `circuit.admin_controlled` | `admin-circuit-control/index.ts` |
 | `consent.accepted` | `consent-accept/index.ts` |
 | `consent.required` | `auth-consent-status/index.ts` |
 | `consent.revoked` | `consent-revoke/index.ts` |
