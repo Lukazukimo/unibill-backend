@@ -249,9 +249,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
       operationId: postInvitationsRedeem
-  /admin/promote-system-admin:
+  /admin-system-admins:
     post:
-      summary: Grant/revoke system-admin (sys admin only)
+      summary: 'Promote/revoke a system admin (sys admin only, T-217)'
       requestBody:
         required: true
         content:
@@ -259,43 +259,82 @@ paths:
             schema:
               type: object
               properties:
-                target_user_id:
+                action:
+                  type: string
+                  enum:
+                    - promote
+                    - revoke
+                user_id:
                   type: string
                   format: uuid
-                grant:
-                  type: boolean
-                reason:
+                email:
+                  type: string
+                  format: email
+                note:
                   type: string
               required:
-                - target_user_id
-                - grant
-                - reason
+                - action
       responses:
         '200':
-          description: Done
+          description: Applied (claim takes effect on the target's next token refresh)
           content:
             application/json:
               schema:
                 type: object
                 properties:
-                  success:
+                  ok:
                     type: boolean
-                  audit_id:
+                  action:
+                    type: string
+                    enum:
+                      - promote
+                      - revoke
+                  user_id:
                     type: string
                     format: uuid
+                  email:
+                    type:
+                      - string
+                      - 'null'
+                  changed:
+                    type: boolean
+                  effective_admin_count:
+                    type: integer
+                  jwt_stale:
+                    type: boolean
+                  warning:
+                    type: string
+        '401':
+          description: missing or invalid JWT
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         '403':
           description: caller is not a system admin
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-        '422':
-          description: cannot demote the last system admin
+        '404':
+          description: target user not found
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-      operationId: postAdminPromoteSystemAdmin
+        '409':
+          description: cannot revoke the last system admin
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: invalid request (bad action / both-or-neither identifier)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+      operationId: postAdminSystemAdmins
   '/admin/invoices/{id}/reextract':
     post:
       summary: Re-queue an invoice for extraction (sys admin or household member)

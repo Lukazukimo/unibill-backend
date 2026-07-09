@@ -13,7 +13,7 @@
 
 ## Domain events emitted (from `supabase/functions/`)
 
-23 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
+25 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
 
 | Event type | Emitted by |
 |---|---|
@@ -39,6 +39,8 @@
 | `invoice.reextract_requested` | `admin-invoice-reextract/index.ts` |
 | `pdf.archived` | `capacity-evictor/archive_pdf.ts` |
 | `privacy.export.completed` | `privacy-export/index.ts` |
+| `system_admin.promoted` | `admin-system-admins/index.ts` |
+| `system_admin.revoked` | `admin-system-admins/index.ts` |
 | `user.deleted` | `privacy-delete/orchestrator.ts` |
 
 ---
