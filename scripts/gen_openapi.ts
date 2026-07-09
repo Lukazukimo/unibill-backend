@@ -225,21 +225,31 @@ export function buildOpenApiDoc(): Json {
           },
         },
       },
-      '/admin/promote-system-admin': {
+      '/admin-system-admins': {
         post: {
-          summary: 'Grant/revoke system-admin (sys admin only)',
+          summary: 'Promote/revoke a system admin (sys admin only, T-217)',
           requestBody: jsonBody({
-            target_user_id: { type: 'string', format: 'uuid' },
-            grant: { type: 'boolean' },
-            reason: { type: 'string' },
-          }, ['target_user_id', 'grant', 'reason']),
+            action: { type: 'string', enum: ['promote', 'revoke'] },
+            user_id: { type: 'string', format: 'uuid' },
+            email: { type: 'string', format: 'email' },
+            note: { type: 'string' },
+          }, ['action']),
           responses: {
-            '200': ok('Done', {
-              success: { type: 'boolean' },
-              audit_id: { type: 'string', format: 'uuid' },
+            '200': ok('Applied (claim takes effect on the target\'s next token refresh)', {
+              ok: { type: 'boolean' },
+              action: { type: 'string', enum: ['promote', 'revoke'] },
+              user_id: { type: 'string', format: 'uuid' },
+              email: { type: ['string', 'null'] },
+              changed: { type: 'boolean' },
+              effective_admin_count: { type: 'integer' },
+              jwt_stale: { type: 'boolean' },
+              warning: { type: 'string' },
             }),
+            '401': err('missing or invalid JWT'),
             '403': err('caller is not a system admin'),
-            '422': err('cannot demote the last system admin'),
+            '404': err('target user not found'),
+            '409': err('cannot revoke the last system admin'),
+            '422': err('invalid request (bad action / both-or-neither identifier)'),
           },
         },
       },
