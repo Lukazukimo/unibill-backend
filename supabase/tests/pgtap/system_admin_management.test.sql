@@ -12,7 +12,7 @@ SET LOCAL search_path = public, extensions, app;
 
 \ir ../helpers/jwt_claims.psql
 
-SELECT plan(16);
+SELECT plan(17);
 
 -- ---------------------------------------------------------------------------
 -- Seed auth.users. u_sole carries the claim (for the LIST test); the ledger
@@ -146,7 +146,7 @@ SET LOCAL search_path = public, extensions, app;  -- set_jwt_claims switched rol
 
 SELECT is(
   (SELECT count(*) FROM app.list_system_admins()
-    WHERE email = 'sole@test.local'),
+    WHERE lower(email) = 'sole@test.local'),
   1::bigint,
   'list_system_admins returns the claim-admin to a sys-admin caller');
 
