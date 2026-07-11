@@ -78,8 +78,10 @@ type FakeState = {
   households: HouseholdRow[];
   members: MemberRow[];
   events: DomainEventInput[];
+  rpcCalls: Array<{ fn: string; args: unknown }>;
   forceHouseholdInsertError?: boolean;
   forceMemberInsertError?: boolean;
+  forceSeedError?: boolean;
 };
 
 function uuid(): string {
@@ -87,7 +89,7 @@ function uuid(): string {
 }
 
 function freshState(opts: Partial<FakeState> = {}): FakeState {
-  return { households: [], members: [], events: [], ...opts };
+  return { households: [], members: [], events: [], rpcCalls: [], ...opts };
 }
 
 // households builder — insert(values).select(cols).single(); delete().eq()
@@ -169,6 +171,15 @@ function membersBuilder(state: FakeState): any {
 // deno-lint-ignore no-explicit-any
 function makeFakeClient(state: FakeState): any {
   return {
+    rpc(fn: string, args: unknown) {
+      state.rpcCalls.push({ fn, args });
+      if (fn === 'seed_household_categories') {
+        return state.forceSeedError
+          ? Promise.resolve({ data: null, error: { message: 'seed failed' } })
+          : Promise.resolve({ data: 7, error: null });
+      }
+      return Promise.resolve({ data: null, error: { message: `unhandled rpc ${fn}` } });
+    },
     from(table: string) {
       if (table === 'households') return householdsBuilder(state);
       if (table === 'members') return membersBuilder(state);
@@ -278,6 +289,26 @@ Deno.test('happy path: creates household + admin member + event → 200', async 
   assertEquals(state.events[0].type, 'household.created');
   assertEquals(state.events[0].aggregate_id, body.household_id);
   assertEquals(state.events[0].actor_user_id, CALLER.id);
+
+  // default invoice categories seeded for the new household (T-119)
+  const seed = state.rpcCalls.find((c) => c.fn === 'seed_household_categories');
+  assert(seed);
+  assertEquals(
+    (seed!.args as { p_household_id: string }).p_household_id,
+    body.household_id,
+  );
+});
+
+Deno.test('a category-seed failure does not unwind the created household', async () => {
+  const state = freshState({ forceSeedError: true });
+  const res = await makeHandler(state)(post({ name: 'Casa' }));
+
+  // Seeding is best-effort: the household, member, and event still succeed.
+  assertEquals(res.status, 200);
+  assertEquals(state.households.length, 1);
+  assertEquals(state.members.length, 1);
+  assertEquals(state.events.length, 1);
+  assert(state.rpcCalls.some((c) => c.fn === 'seed_household_categories'));
 });
 
 Deno.test('household insert failure → 500 + no member, no event', async () => {

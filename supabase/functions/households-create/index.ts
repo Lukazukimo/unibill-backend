@@ -224,6 +224,33 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
       return jsonResponse(500, { error: 'internal_error', code: 'members_insert_failed' });
     }
 
+    // 4.5) Seed the household's default invoice categories (T-119). Best-effort:
+    //       a failure must NOT unwind the just-created household — categories can
+    //       be re-seeded and the user can add their own. Runs after the member
+    //       insert so a failed household never seeds an orphan.
+    try {
+      const { error: seedErr } = await client.rpc('seed_household_categories', {
+        p_household_id: householdId,
+      });
+      if (seedErr) {
+        console.error(JSON.stringify({
+          level: 'warn',
+          correlation_id: ctx.correlation_id,
+          msg: 'seed_household_categories failed (non-fatal)',
+          household_id: householdId,
+          error: redactSecrets(seedErr.message),
+        }));
+      }
+    } catch (e) {
+      console.error(JSON.stringify({
+        level: 'warn',
+        correlation_id: ctx.correlation_id,
+        msg: 'seed_household_categories threw (non-fatal)',
+        household_id: householdId,
+        error: redactSecrets(e instanceof Error ? e.message : String(e)),
+      }));
+    }
+
     // 5) Emit household.created (best-effort)
     try {
       await emitEvent({
