@@ -68,6 +68,13 @@ Enum "public"."setting_scope" {
   "user"
 }
 
+Table "app"."invoice_category_templates" {
+  "name" text [pk]
+  "color" text
+  "icon" text
+  "sort_order" int
+}
+
 Table "app"."migration_metadata" {
   "migration_name" text [pk]
   "applied_at" timestamptz
