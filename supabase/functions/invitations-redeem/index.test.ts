@@ -708,27 +708,33 @@ Deno.test('handler race: invite consumed between lookup and update → 404 + mem
   assertEquals((failed!.payload.data as { reason: string }).reason, 'invite_used');
 });
 
-// TODO: handler check order conflicts with this test — IP/user rate-limits
-// (index.ts:457/484) fire BEFORE code-lockout check (index.ts:521), so the
-// 6th attempt returns 429 (rate_limited) instead of expected 404 (anti-enum).
-// Real bug or test bug? Spec §9.1 needs to clarify the priority. Ignored for
-// now so the rest of test-deno runs green; tracked in #204.
-Deno.test.ignore(
-  'handler bumps lockout counter on every failure (5th failure trips the threshold)',
+// #204 resolution: the handler's check order (IP → user → per-code lockout) is
+// CORRECT and stays. The per-code lockout defends against DISTRIBUTED brute
+// force (many callers each staying under their own IP/user caps but driving one
+// code to the threshold); a single caller hammering one code trips their own
+// per-user cap (5) first and is stopped with 429 — which does NOT leak code
+// existence (the IP/user buckets are code-agnostic), so anti-enumeration holds
+// either way. So the fix is the test, not the handler: exercise the lockout the
+// way it is actually reachable (distributed), and separately pin the single-
+// caller 429 behaviour.
+Deno.test(
+  'per-code lockout: 5 DISTRIBUTED failures lock the code; a fresh caller gets 404 (anti-enum)',
   async () => {
-    // No invitation in state — every call hits "invite_not_found".
-    // After 5 failures the bucket reaches CODE_FAIL_THRESHOLD; the 6th call
-    // would peek-block, but we don't make a 6th — we just assert count.
+    // No invitation exists yet → every attempt is invite_not_found, and each
+    // failure bumps the per-code bucket. Five DISTINCT (user, ip) pairs each
+    // fail once, so no per-user (limit 5) or per-IP (limit 10) bucket trips —
+    // the code bucket reaches CODE_FAIL_THRESHOLD purely via the code path.
     const state = freshState();
-    const handler = buildHandler({
-      getCallerUser: callerStub({ id: 'u1', email: 'a@b.co' }),
-      client: makeFakeClient(state),
-      emitEvent: captureEvents(state),
-      now: () => FIXED_NOW,
-    });
-
     for (let i = 0; i < CODE_FAIL_THRESHOLD; i++) {
-      const res = await handler(makeRequest({ code: VALID_CODE }));
+      const handler = buildHandler({
+        getCallerUser: callerStub({ id: `u${i}`, email: `u${i}@b.co` }),
+        client: makeFakeClient(state),
+        emitEvent: captureEvents(state),
+        now: () => FIXED_NOW,
+      });
+      const res = await handler(
+        makeRequest({ code: VALID_CODE }, { 'x-forwarded-for': `10.0.0.${i}` }),
+      );
       assertEquals(res.status, 404);
     }
 
@@ -740,17 +746,59 @@ Deno.test.ignore(
     assert(codeBucket);
     assertEquals(codeBucket!.count, CODE_FAIL_THRESHOLD);
 
-    // Now a real invite arrives, but the lockout is at threshold — must 404
-    // with anti-enumeration. We also assert that the post-block attempt still
-    // increments the counter (so sys admin can detect *continued* brute force).
+    // A real invitation now exists for the locked code. A FRESH caller/IP (so no
+    // per-user/IP limit trips) must still get 404 via the code-lockout branch —
+    // NOT a 429 — and must not consume the invite; the counter tracks the
+    // post-lockout attempt so sys admin can see continued brute force.
     state.invitations.push(makeInvitation());
-    const res = await handler(makeRequest({ code: VALID_CODE }));
+    const freshHandler = buildHandler({
+      getCallerUser: callerStub({ id: 'u-fresh', email: 'fresh@b.co' }),
+      client: makeFakeClient(state),
+      emitEvent: captureEvents(state),
+      now: () => FIXED_NOW,
+    });
+    const res = await freshHandler(
+      makeRequest({ code: VALID_CODE }, { 'x-forwarded-for': '10.0.0.99' }),
+    );
     assertEquals(res.status, 404);
-    // Members row was NOT inserted (we short-circuited at lockout check)
     assertEquals(state.members.length, 0);
-    // Invitation is NOT consumed
     assertEquals(state.invitations[0].used_at, null);
-    // Counter went one above threshold (post-block tracking)
-    assertEquals(codeBucket!.count, CODE_FAIL_THRESHOLD + 1);
+    // Re-find: the fake's upsert REPLACES the bucket object, so the earlier
+    // reference is stale — read the current one to see the post-lockout bump.
+    const afterBucket = state.buckets.find(
+      (b) =>
+        b.resource_type === RL_RESOURCE_REDEEM_CODE &&
+        b.resource_key === `code:${VALID_CODE}`,
+    );
+    assertEquals(afterBucket!.count, CODE_FAIL_THRESHOLD + 1);
+  },
+);
+
+Deno.test(
+  'single caller hammering one code is stopped by the per-user limit (429), not the code-lockout',
+  async () => {
+    // The per-user cap (5) is below the point a lone caller could reach a 6th
+    // same-code failure, so it — not the code-lockout — is what stops them. The
+    // 429 is code-agnostic (scope:user), so it leaks nothing about the code.
+    const state = freshState();
+    const handler = buildHandler({
+      getCallerUser: callerStub({ id: 'u1', email: 'a@b.co' }),
+      client: makeFakeClient(state),
+      emitEvent: captureEvents(state),
+      now: () => FIXED_NOW,
+    });
+
+    // First 5 attempts: under the per-user cap → 404 invite_not_found.
+    for (let i = 0; i < RL_LIMIT_USER; i++) {
+      const res = await handler(makeRequest({ code: VALID_CODE }));
+      assertEquals(res.status, 404);
+    }
+
+    // 6th attempt from the same user: the user bucket now exceeds the cap → 429.
+    const res = await handler(makeRequest({ code: VALID_CODE }));
+    assertEquals(res.status, 429);
+    const body = await res.json();
+    assertEquals(body.error, 'rate_limited');
+    assertEquals(body.scope, 'user');
   },
 );
