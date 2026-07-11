@@ -278,6 +278,10 @@ export function buildHandler(deps: HandlerDeps): (req: Request) => Promise<Respo
           type: 'email.household_unbound',
           aggregate_type: 'connected_email',
           aggregate_id: emailId,
+          // Unlike email.revoked (credential-global), an unbind is
+          // household-specific, so stamp the top-level household_id column too —
+          // it makes the event discoverable by a household-scoped feed.
+          household_id: householdId,
           correlation_id: ctx.correlation_id,
           actor_type: 'user',
           actor_user_id: caller.id,

@@ -339,12 +339,19 @@ Deno.test('handler happy path OWNER: only the target binding is soft-deleted + e
       makeBinding({ connected_email_id: otherEmailId, household_id: HOUSEHOLD_A }),
     ],
   });
-  let emitted: { type: string; aggregate_id: string; payload: unknown } | null = null;
+  let emitted:
+    | { type: string; aggregate_id: string; household_id?: string; payload: unknown }
+    | null = null;
   const handler = buildHandler({
     getCallerUser: callerStub({ id: 'u1', isSystemAdmin: false }),
     client: makeFakeClient(state),
     emitEvent: (e) => {
-      emitted = { type: e.type, aggregate_id: e.aggregate_id, payload: e.payload };
+      emitted = {
+        type: e.type,
+        aggregate_id: e.aggregate_id,
+        household_id: e.household_id,
+        payload: e.payload,
+      };
       return Promise.resolve();
     },
     now: fixedNow,
@@ -370,9 +377,13 @@ Deno.test('handler happy path OWNER: only the target binding is soft-deleted + e
 
   // Event: email.household_unbound with the target household in the payload.
   assert(emitted !== null);
-  const ev = nonNull<{ type: string; aggregate_id: string; payload: unknown }>(emitted);
+  const ev = nonNull<
+    { type: string; aggregate_id: string; household_id?: string; payload: unknown }
+  >(emitted);
   assertEquals(ev.type, 'email.household_unbound');
   assertEquals(ev.aggregate_id, EMAIL_ID);
+  // Household-specific event stamps the top-level household_id column.
+  assertEquals(ev.household_id, HOUSEHOLD_A);
   const payload = ev.payload as { version: number; data: Record<string, unknown> };
   assertEquals(payload.version, 1);
   assertEquals(payload.data.household_id, HOUSEHOLD_A);
