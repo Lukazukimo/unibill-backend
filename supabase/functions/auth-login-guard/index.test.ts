@@ -28,6 +28,8 @@ import {
 // In-memory mock of the `rate_limit_buckets` table.
 // ---------------------------------------------------------------------------
 
+import { fakeRateLimitConsume } from '../_shared/_test_utils.ts';
+
 type Row = {
   resource_type: string;
   resource_key: string;
@@ -70,6 +72,14 @@ class FakeRateLimitTable {
 // deno-lint-ignore no-explicit-any
 function makeFakeClient(table: FakeRateLimitTable): any {
   return {
+    rpc(fn: string, args: unknown) {
+      if (fn === 'rate_limit_consume') {
+        return Promise.resolve(
+          fakeRateLimitConsume(table.rows, args as Record<string, unknown>),
+        );
+      }
+      return Promise.resolve({ data: null, error: { message: `unhandled rpc ${fn}` } });
+    },
     from(_tableName: string) {
       // chain accumulators
       const filters: Array<(r: Row) => boolean> = [];

@@ -21,6 +21,7 @@
 
 import { assert, assertEquals } from 'jsr:@std/assert@^1.0.0';
 import { buildHandler, type HandlerDeps, type IngestResponse } from './index.ts';
+import { fakeRateLimitConsume } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Fake Supabase client — consent_log (select), rate_limit_buckets
@@ -51,6 +52,14 @@ function freshState(opts: Partial<FakeState> = {}): FakeState {
 // deno-lint-ignore no-explicit-any
 function makeFakeClient(state: FakeState): any {
   return {
+    rpc(fn: string, args: unknown) {
+      if (fn === 'rate_limit_consume') {
+        return Promise.resolve(
+          fakeRateLimitConsume(state.buckets, args as Record<string, unknown>),
+        );
+      }
+      return Promise.resolve({ data: null, error: { message: `unhandled rpc ${fn}` } });
+    },
     from(table: string) {
       if (table === 'consent_log') return consentBuilder(state);
       if (table === 'rate_limit_buckets') return bucketBuilder(state);

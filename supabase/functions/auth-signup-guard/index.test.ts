@@ -29,7 +29,7 @@ import {
   ipRateKey,
   peekIpRate,
 } from '../_shared/ip_rate.ts';
-import { nonNull } from '../_shared/_test_utils.ts';
+import { fakeRateLimitConsume, nonNull } from '../_shared/_test_utils.ts';
 
 // ---------------------------------------------------------------------------
 // Constants (lock the spec)
@@ -234,6 +234,14 @@ class FakeRateLimitTable {
 // deno-lint-ignore no-explicit-any
 function makeFakeClient(table: FakeRateLimitTable): any {
   return {
+    rpc(fn: string, args: unknown) {
+      if (fn === 'rate_limit_consume') {
+        return Promise.resolve(
+          fakeRateLimitConsume(table.rows, args as Record<string, unknown>),
+        );
+      }
+      return Promise.resolve({ data: null, error: { message: `unhandled rpc ${fn}` } });
+    },
     from(_t: string) {
       const filters: Array<(r: Row) => boolean> = [];
       let pendingUpsert: Row | null = null;
