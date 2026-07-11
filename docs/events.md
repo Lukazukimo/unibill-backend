@@ -13,7 +13,7 @@
 
 ## Domain events emitted (from `supabase/functions/`)
 
-25 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
+26 distinct event type(s), grepped from `emitDomainEvent` / `emitEvent` call sites.
 
 | Event type | Emitted by |
 |---|---|
@@ -28,6 +28,7 @@
 | `consent.required` | `auth-consent-status/index.ts` |
 | `consent.revoked` | `consent-revoke/index.ts` |
 | `email.connected` | `emails-connect/index.ts` |
+| `email.household_unbound` | `emails-unbind/index.ts` |
 | `email.password_rotated` | `emails-rotate/index.ts` |
 | `email.revoked` | `emails-delete/index.ts` |
 | `email.sync.auto_paused` | `sync-worker/index.ts` |
