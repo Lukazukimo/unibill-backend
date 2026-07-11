@@ -101,31 +101,19 @@ async function incrementBucketBy(
 ): Promise<{ count: number; over_limit: boolean }> {
   const windowStart = floorToWindow(now, RL_WINDOW_MINUTES);
 
-  const { data: existing, error: readErr } = await client
-    .from('rate_limit_buckets')
-    .select('count')
-    .eq('resource_type', RL_RESOURCE_TELEMETRY)
-    .eq('resource_key', resourceKey)
-    .eq('window_start', windowStart.toISOString())
-    .maybeSingle();
-  if (readErr) throw readErr;
+  // Atomic increment by the batch size (INSERT .. ON CONFLICT DO UPDATE
+  // count+amount) — the prior read-then-upsert let concurrent batches from the
+  // same user under-count and exceed the per-user event cap.
+  const { data, error } = await client.rpc('rate_limit_consume', {
+    p_resource_type: RL_RESOURCE_TELEMETRY,
+    p_resource_key: resourceKey,
+    p_window_start: windowStart.toISOString(),
+    p_window_size: `${RL_WINDOW_MINUTES} minutes`,
+    p_amount: amount,
+  });
+  if (error) throw error;
 
-  const nextCount = ((existing?.count as number | undefined) ?? 0) + amount;
-
-  const { error: upsertErr } = await client
-    .from('rate_limit_buckets')
-    .upsert(
-      {
-        resource_type: RL_RESOURCE_TELEMETRY,
-        resource_key: resourceKey,
-        window_start: windowStart.toISOString(),
-        window_size: `${RL_WINDOW_MINUTES} minutes`,
-        count: nextCount,
-      },
-      { onConflict: 'resource_type,resource_key,window_start,window_size' },
-    );
-  if (upsertErr) throw upsertErr;
-
+  const nextCount = data as number;
   return { count: nextCount, over_limit: nextCount > limit };
 }
 

@@ -141,33 +141,20 @@ export async function recordFailure(
   const failWindowStart = floorToWindow(now, FAIL_WINDOW_MINUTES);
   const failKey = lockoutKey(email, 'fail');
 
-  // Fetch current count for this exact window (if any)
-  const { data: existing, error: readErr } = await client
-    .from('rate_limit_buckets')
-    .select('count')
-    .eq('resource_type', LOCKOUT_RESOURCE_TYPE)
-    .eq('resource_key', failKey)
-    .eq('window_start', failWindowStart.toISOString())
-    .maybeSingle();
+  // Atomic increment of the fail bucket (no read-then-upsert race — parallel
+  // failed logins for the same email must each count exactly once).
+  const { data: failCount, error: failErr } = await client.rpc(
+    'rate_limit_consume',
+    {
+      p_resource_type: LOCKOUT_RESOURCE_TYPE,
+      p_resource_key: failKey,
+      p_window_start: failWindowStart.toISOString(),
+      p_window_size: `${FAIL_WINDOW_MINUTES} minutes`,
+    },
+  );
+  if (failErr) throw failErr;
 
-  if (readErr) throw readErr;
-
-  const nextCount = ((existing?.count as number | undefined) ?? 0) + 1;
-
-  const row: RateLimitBucketRow = {
-    resource_type: LOCKOUT_RESOURCE_TYPE,
-    resource_key: failKey,
-    window_start: failWindowStart.toISOString(),
-    window_size: `${FAIL_WINDOW_MINUTES} minutes`,
-    count: nextCount,
-  };
-
-  const { error: upsertErr } = await client
-    .from('rate_limit_buckets')
-    .upsert(row, { onConflict: 'resource_type,resource_key,window_start,window_size' });
-
-  if (upsertErr) throw upsertErr;
-
+  const nextCount = failCount as number;
   const thresholdCrossed = nextCount >= FAIL_THRESHOLD;
 
   if (thresholdCrossed) {

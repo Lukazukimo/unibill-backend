@@ -230,32 +230,17 @@ async function incrementBucket(
 ): Promise<BucketIncrementResult> {
   const windowStart = floorToWindow(now, windowMinutes);
 
-  const { data: existing, error: readErr } = await client
-    .from('rate_limit_buckets')
-    .select('count')
-    .eq('resource_type', resource_type)
-    .eq('resource_key', resource_key)
-    .eq('window_start', windowStart.toISOString())
-    .maybeSingle();
+  // Atomic increment (INSERT .. ON CONFLICT DO UPDATE count+1) — the prior
+  // read-then-upsert lost updates under concurrent redeem attempts.
+  const { data, error } = await client.rpc('rate_limit_consume', {
+    p_resource_type: resource_type,
+    p_resource_key: resource_key,
+    p_window_start: windowStart.toISOString(),
+    p_window_size: `${windowMinutes} minutes`,
+  });
+  if (error) throw error;
 
-  if (readErr) throw readErr;
-
-  const nextCount = ((existing?.count as number | undefined) ?? 0) + 1;
-
-  const { error: upsertErr } = await client
-    .from('rate_limit_buckets')
-    .upsert(
-      {
-        resource_type,
-        resource_key,
-        window_start: windowStart.toISOString(),
-        window_size: `${windowMinutes} minutes`,
-        count: nextCount,
-      },
-      { onConflict: 'resource_type,resource_key,window_start,window_size' },
-    );
-  if (upsertErr) throw upsertErr;
-
+  const nextCount = data as number;
   return { count: nextCount, over_limit: nextCount > limit };
 }
 

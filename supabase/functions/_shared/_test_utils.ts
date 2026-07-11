@@ -50,3 +50,45 @@ export function nonNull<T>(v: T | null | undefined, msg = 'expected non-null'): 
   }
   return v;
 }
+
+export type FakeRateLimitRow = {
+  resource_type: string;
+  resource_key: string;
+  window_start: string;
+  window_size: string;
+  count: number;
+};
+
+/**
+ * In-memory stand-in for the atomic `app.rate_limit_consume` rpc used by the
+ * function fakes: increments the matching bucket by `p_amount` (default 1),
+ * creating it when absent, and returns `{ data: newCount }` — mirroring the real
+ * INSERT .. ON CONFLICT DO UPDATE count+amount RETURNING count. Buckets are
+ * matched on (resource_type, resource_key, window_start); a single test never
+ * mixes window sizes, and the peek/select paths key on the same three columns.
+ */
+export function fakeRateLimitConsume(
+  rows: FakeRateLimitRow[],
+  args: Record<string, unknown>,
+): { data: number; error: null } {
+  const amount = (args.p_amount as number | undefined) ?? 1;
+  const existing = rows.find(
+    (r) =>
+      r.resource_type === args.p_resource_type &&
+      r.resource_key === args.p_resource_key &&
+      r.window_start === args.p_window_start,
+  );
+  if (existing) {
+    existing.count += amount;
+    return { data: existing.count, error: null };
+  }
+  const created: FakeRateLimitRow = {
+    resource_type: args.p_resource_type as string,
+    resource_key: args.p_resource_key as string,
+    window_start: args.p_window_start as string,
+    window_size: args.p_window_size as string,
+    count: amount,
+  };
+  rows.push(created);
+  return { data: created.count, error: null };
+}

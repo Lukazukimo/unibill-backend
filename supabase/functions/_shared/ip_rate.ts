@@ -41,14 +41,6 @@ export type IpRateStatus = {
   over_limit: boolean;
 };
 
-type Row = {
-  resource_type: string;
-  resource_key: string;
-  window_start: string;
-  window_size: string;
-  count: number;
-};
-
 /** Builds the bucket key. `ip` may be 'unknown' when no proxy header is set. */
 export function ipRateKey(ip: string): string {
   return `ip:${ip}`;
@@ -73,34 +65,18 @@ export async function countAndIncrementIp(
   client: SupabaseClient,
 ): Promise<IpRateStatus> {
   const windowStart = floorToWindow(now, IP_RATE_WINDOW_MINUTES);
-  const key = ipRateKey(ip);
 
-  const { data: existing, error: readErr } = await client
-    .from('rate_limit_buckets')
-    .select('count')
-    .eq('resource_type', resource_type)
-    .eq('resource_key', key)
-    .eq('window_start', windowStart.toISOString())
-    .maybeSingle();
+  // Atomic increment (INSERT .. ON CONFLICT DO UPDATE count+1) — no
+  // read-then-upsert race under concurrent requests from the same IP.
+  const { data, error } = await client.rpc('rate_limit_consume', {
+    p_resource_type: resource_type,
+    p_resource_key: ipRateKey(ip),
+    p_window_start: windowStart.toISOString(),
+    p_window_size: `${IP_RATE_WINDOW_MINUTES} minutes`,
+  });
+  if (error) throw error;
 
-  if (readErr) throw readErr;
-
-  const nextCount = ((existing?.count as number | undefined) ?? 0) + 1;
-
-  const row: Row = {
-    resource_type,
-    resource_key: key,
-    window_start: windowStart.toISOString(),
-    window_size: `${IP_RATE_WINDOW_MINUTES} minutes`,
-    count: nextCount,
-  };
-
-  const { error: upsertErr } = await client
-    .from('rate_limit_buckets')
-    .upsert(row, { onConflict: 'resource_type,resource_key,window_start,window_size' });
-
-  if (upsertErr) throw upsertErr;
-
+  const nextCount = data as number;
   return { count: nextCount, over_limit: nextCount > limit };
 }
 
