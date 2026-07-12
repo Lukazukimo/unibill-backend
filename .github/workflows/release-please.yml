@@ -11,6 +11,9 @@ permissions:
 jobs:
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -18,8 +21,15 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-      # Future: when MVP stabilizes and we publish releases, add steps here that
-      # only run when ${{ steps.release.outputs.release_created }} == 'true':
-      #   - Build artifacts
-      #   - Upload to GitHub Release
-      #   - Tag deploy to Supabase prod
+  # Prod deploy runs in THIS same workflow run (not via `on: release`) because a
+  # Release created by the default GITHUB_TOKEN does not trigger other workflows.
+  # The production Environment (set in Task 6) carries the required-reviewer gate,
+  # so this job pauses for approval before it applies anything.
+  deploy-prod:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    uses: ./.github/workflows/deploy-supabase.yml
+    with:
+      environment: production
+      ref: ${{ needs.release-please.outputs.tag_name }}
+    secrets: inherit
