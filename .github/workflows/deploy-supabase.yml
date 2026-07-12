@@ -58,11 +58,22 @@ jobs:
 
       - name: Apply hosted-only auth config (Management API)
         run: |
-          curl -fsS -X PATCH \
+          # HIBP / leaked-password protection is a paid-plan feature: the Management
+          # API returns 402 on the free tier. Tolerate 402 (warn + continue) so the
+          # deploy proceeds; it applies for real once the project is on a paid plan.
+          # Any other non-2xx still fails the deploy.
+          code=$(curl -sS -o /tmp/auth_resp.json -w '%{http_code}' -X PATCH \
             "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
             -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
             -H "Content-Type: application/json" \
-            --data @supabase/remote-auth-config.json
+            --data @supabase/remote-auth-config.json)
+          if [ "$code" = "402" ]; then
+            echo "::warning::hosted-only auth config (HIBP) needs a paid plan (402); skipped on this tier"
+          elif [ "$code" -lt 200 ] || [ "$code" -ge 300 ]; then
+            echo "::error::auth config PATCH returned HTTP $code"; cat /tmp/auth_resp.json; exit 1
+          else
+            echo "auth config applied (HTTP $code)"
+          fi
 
       # Gate: ping every configured AI provider with a 1-token call before promoting
       # functions, so a dead model (404) or an unset sentinel key fails loudly. Skips
