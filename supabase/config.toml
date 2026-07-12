@@ -140,8 +140,14 @@ otp_length = 6
 
 # Magic links are explicitly enabled as an alternative to password login
 # (spec §9.1: "Magic link disponível como alternativa").
-[auth.email.template.magic_link]
-subject = "Seu link de acesso ao Unibill"
+# DISABLED until a custom SMTP provider is configured (launch-time): the hosted
+# free tier + default email provider rejects email-template modification via
+# `config push` ("Email template modification is not available for free tier
+# projects using the default email provider"). That provider is also rate-limited
+# to a few emails/hour (not production-usable), so the pt-BR templates land
+# together with SMTP. Re-enable then.
+# [auth.email.template.magic_link]
+# subject = "Seu link de acesso ao Unibill"
 
 # -------------------------------------------------------------------------
 # Per-endpoint rate limits enforced by GoTrue itself. These are the ONLY
