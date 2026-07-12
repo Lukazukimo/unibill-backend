@@ -6,20 +6,37 @@ Never commit real values — this file documents *names and purpose only*.
 
 ## Supabase (deploy + monitoring)
 
+Two schemes coexist: the deploy pipeline (`deploy-supabase.yml`) reads **GitHub
+Environment secrets** (`dev` + `production`), unsuffixed; the monitor workflows
+(`health-monitor`, `capacity-monthly-report`) read **repo-level** secrets suffixed
+`..._DEV`. The operator must set both — the `..._DEV` values duplicate the
+dev-Environment values.
+
+### Deploy pipeline — GitHub Environment secrets (dev + production), unsuffixed
+
+Set these under **Settings → Environments → `dev`** and again under
+**Settings → Environments → `production`** (values differ per environment).
+`deploy-supabase.yml` is a reusable workflow called with `secrets: inherit` by
+`deploy-dev.yml` (push to `main`, `environment: dev`) and by `release-please.yml`
+(`deploy-prod` job on a published Release, `environment: production`, gated by
+required-reviewer approval); it reads them via its job's `environment:` block.
+
 | Secret | Used by | Purpose |
 |---|---|---|
-| `SUPABASE_ACCESS_TOKEN` | deploy-dev | Supabase CLI auth (`supabase` PAT, `sbp_…`). |
-| `SUPABASE_PROJECT_REF_DEV` | deploy-dev | Target project ref for the dev deploy. |
-| `SUPABASE_DB_PASSWORD_DEV` | deploy-dev | DB password for `supabase db push`. |
-| `SUPABASE_URL_DEV` | deploy-dev, health-monitor, capacity-monthly-report | REST base `https://<ref>.supabase.co` for context/report queries. |
-| `SUPABASE_SERVICE_ROLE_KEY_DEV` | deploy-dev, health-monitor, capacity-monthly-report | `service_role` key — **bypasses RLS**; read-only context for alerts/reports. Rotate per [RUNBOOK §4](RUNBOOK.md). |
+| `SUPABASE_ACCESS_TOKEN` | deploy-supabase (deploy-dev, release-please) | Supabase CLI auth (`supabase` PAT, `sbp_…`). |
+| `SUPABASE_PROJECT_REF` | deploy-supabase (deploy-dev, release-please) | Target project ref (`supabase link`). |
+| `SUPABASE_DB_PASSWORD` | deploy-supabase (deploy-dev, release-please) | DB password for `supabase db push`. |
+| `SUPABASE_URL` | deploy-supabase (deploy-dev, release-please) | REST base `https://<ref>.supabase.co` for the post-deploy health check. |
+| `SUPABASE_SERVICE_ROLE_KEY` | deploy-supabase (deploy-dev, release-please) | `service_role` key — **bypasses RLS**; used by the AI-provider smoke test and post-deploy health check. Rotate per [RUNBOOK §4](RUNBOOK.md). |
+| `GEMINI_API_KEY` | deploy-supabase (deploy-dev, release-please) | 1-token smoke call gating the Edge Functions deploy. |
+| `GROQ_API_KEY` | deploy-supabase (deploy-dev, release-please) | idem. |
 
-## AI providers (deploy smoke test, T-419)
+### Monitor workflows — repo-level secrets, `..._DEV`-suffixed
 
 | Secret | Used by | Purpose |
 |---|---|---|
-| `GEMINI_API_KEY` | deploy-dev | 1-token smoke call gating the Edge Functions deploy. |
-| `GROQ_API_KEY` | deploy-dev | idem. |
+| `SUPABASE_URL_DEV` | health-monitor, capacity-monthly-report | REST base `https://<ref>.supabase.co` for context/report queries. Duplicates the dev-Environment `SUPABASE_URL` value. |
+| `SUPABASE_SERVICE_ROLE_KEY_DEV` | health-monitor, capacity-monthly-report | `service_role` key — **bypasses RLS**; read-only context for alerts/reports. Duplicates the dev-Environment `SUPABASE_SERVICE_ROLE_KEY` value. Rotate per [RUNBOOK §4](RUNBOOK.md). |
 
 ## Health monitoring (T-614)
 

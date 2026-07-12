@@ -51,7 +51,7 @@ jobs:
         run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
 
       - name: Push migrations
-        run: supabase db push
+        run: supabase db push --yes
 
       - name: Push config.toml (auth/api)
         run: supabase config push --yes
