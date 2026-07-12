@@ -1,0 +1,89 @@
+name: Deploy (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Target GitHub Environment (dev | production)
+        required: true
+        type: string
+      ref:
+        description: Git ref (sha for dev, tag for prod) to check out and deploy
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  # Never cancel an in-flight migration; serialize per environment.
+  group: deploy-${{ inputs.environment }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    # The Environment carries the secrets AND (for production) the required-reviewer
+    # approval gate. The run pauses here until approved when environment=production.
+    environment:
+      name: ${{ inputs.environment }}
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+
+      - name: Push migrations
+        run: supabase db push
+
+      - name: Push config.toml (auth/api)
+        run: supabase config push --yes
+
+      - name: Apply hosted-only auth config (Management API)
+        run: |
+          curl -fsS -X PATCH \
+            "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_REF/config/auth" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data @supabase/remote-auth-config.json
+
+      # Gate: ping every configured AI provider with a 1-token call before promoting
+      # functions, so a dead model (404) or an unset sentinel key fails loudly. Skips
+      # cleanly until the AI + service-role secrets are configured for the env.
+      - name: Setup Deno
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Smoke-test AI providers
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
+        run: deno run --allow-env --allow-net scripts/smoke_test_ai_providers.ts
+
+      - name: Deploy Edge Functions
+        run: >-
+          supabase functions deploy
+          --import-map supabase/functions/import_map.json
+          --use-api --yes
+
+      - name: Post-deploy health check
+        run: |
+          curl -fsS -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY" \
+            "$SUPABASE_URL/functions/v1/health"
