@@ -19,7 +19,10 @@ Contexto: provisionamento rastreado em [#1]. Origem cloud: org `hxsdyolvhihnhwnx
 > Snapshot de estado em 2026-07-11: **dev** = 58 migrations + 32 Edge Functions;
 > **prod** = pendente de provisionamento (0 migrations). Atualize ao promover prod.
 
-## Receita de provisionamento (CLI)
+## Receita de provisionamento (CLI, bootstrap / break-glass)
+
+> No dia a dia o deploy é **automatizado** — ver [CI/CD](#cicd--deploy-automatizado-t-638).
+> Esta receita manual serve para o bootstrap inicial de um projeto novo ou break-glass.
 
 Rodar da raiz de `unibill-backend`, com o `SUPABASE_ACCESS_TOKEN` (PAT) exportado ou
 após `supabase login`. Todos os comandos via `mise exec --` (toolchain pinada).
@@ -37,12 +40,33 @@ mise exec -- supabase db push
 mise exec -- supabase functions deploy --import-map supabase/functions/import_map.json
 ```
 
-## Config de Auth no Dashboard (manual — `db push` NÃO empurra isto)
+## CI/CD — deploy automatizado (T-638)
 
-`supabase db push` aplica só migrations. O bloco `[auth]` do `config.toml` vale para o
-stack local; no projeto hosted os mesmos valores têm que ser setados no **Dashboard →
-Authentication** (ou via `supabase config push`, experimental). Espelhar de
-`supabase/config.toml` (fonte da verdade, spec §9.1):
+No dia a dia **não é preciso rodar a receita manual acima**. O deploy é automatizado por
+três workflows (design em `docs/superpowers/specs/2026-07-12-supabase-deploy-pipeline-design.md`):
+
+- **`.github/workflows/deploy-supabase.yml`** — workflow reutilizável com o job de deploy
+  inteiro: `link` → `db push` → `config push` → config de auth hosted-only via Management API
+  → smoke-test de IA → `functions deploy --import-map … --use-api` → health check.
+- **`.github/workflows/deploy-dev.yml`** — dispara via `workflow_run` após o **CI** passar no
+  `main` e chama o reutilizável sob o Environment **`dev`** (deploy automático a cada merge).
+- **`.github/workflows/release-please.yml`** (job `deploy-prod`) — quando o release-please
+  publica uma Release, chama o reutilizável sob o Environment **`production`**, **gateado por
+  aprovação obrigatória de reviewer**. (Vive aqui, e não num `on: release`, porque Releases
+  criadas pelo `GITHUB_TOKEN` padrão não disparam outros workflows.)
+
+Fluxo: `merge no main → CI → deploy dev` · `Release publicada → aprovação → deploy prod`.
+
+Os secrets são **por GitHub Environment** (`dev` + `production`, sem sufixo) — ver
+[`secrets.md`](secrets.md). O gate de prod É a regra *required reviewer* no Environment
+`production`.
+
+## Config de Auth (automatizada pelo pipeline; checklist = valores)
+
+O pipeline aplica a config de auth automaticamente: `supabase config push` (o que tem chave no
+`config.toml`) + um `PATCH` na Management API para os itens hosted-only (HIBP). Este checklist
+é a **referência dos valores** (fonte: `supabase/config.toml`, spec §9.1) e o fallback manual
+no **Dashboard → Authentication** caso precise ajustar à mão:
 
 **Sessão / tokens**
 - [ ] JWT (access token) expiry = **3600s (1h)** (`jwt_expiry`)
