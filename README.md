@@ -64,7 +64,7 @@ GitHub Actions roda em todo PR e em push pra `main` (ver [`.github/workflows/ci.
 - **`test-db`** — sobe um service container `postgres:15` e (em tasks futuras, T-105+) aplica migrations + roda pgTAP. Hoje é esqueleto nomeado pra branch protection já casar.
 - **`test-deno`** — roda `deno test --allow-all --coverage=coverage` em Edge Functions. Esqueleto até T-125 trazer os primeiros testes em `supabase/functions/_shared/`.
 
-Push pra `main` com CI verde dispara [`.github/workflows/deploy-dev.yml`](.github/workflows/deploy-dev.yml) via `workflow_run`, que aponta pro GitHub Environment `dev` (histórico de deploy fica registrado) e usa os secrets `SUPABASE_ACCESS_TOKEN` + `SUPABASE_PROJECT_REF_DEV` + `SUPABASE_DB_PASSWORD_DEV`. Os steps de `supabase db push --linked` e `supabase functions deploy` ainda são placeholders e ganham corpo quando o projeto Supabase dev for provisionado (checklist §11.5).
+Push pra `main` com CI verde dispara [`.github/workflows/deploy-dev.yml`](.github/workflows/deploy-dev.yml) via `workflow_run`, que chama o workflow reusável [`.github/workflows/deploy-supabase.yml`](.github/workflows/deploy-supabase.yml) sob o GitHub Environment `dev` (histórico de deploy fica registrado) e roda os steps reais: `supabase link`, `supabase db push`, `supabase config push`, aplicação da config de auth hosted-only via Management API e `supabase functions deploy --import-map … --use-api`. O deploy de produção acontece separado: quando o release-please publica uma Release, o job `deploy-prod` chama o mesmo workflow reusável sob o Environment `production`, que é gateado por aprovação obrigatória de reviewer.
 
 Estratégia de branches detalhada na spec §11.1.
 
