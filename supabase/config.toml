@@ -156,8 +156,10 @@ sign_in_sign_ups = 5
 token_refresh = 150
 # OTP / magic-link sends: 5 per hour per email (spec §9.1).
 email_sent = 5
-# Password recovery emails: 10 per hour per IP (spec §9.1).
-sms_sent = 0
+# SMS OTP sends per hour. Unibill is email-only (no SMS provider configured), so
+# this never fires — but the hosted Management API rejects 0 (`config push`
+# requires >= 1), so we set the GoTrue default (30). Harmless without a provider.
+sms_sent = 30
 
 # -------------------------------------------------------------------------
 # Edge Functions runtime. `per_worker` keeps each function instance isolated,
