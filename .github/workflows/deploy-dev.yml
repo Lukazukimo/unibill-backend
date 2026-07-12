@@ -1,7 +1,6 @@
 name: Deploy (dev)
 
-# Runs only after the CI workflow succeeds on a push to `main`.
-# Spec §11.1: push to `main` → deploy dev automático.
+# Runs after the CI workflow succeeds on a push to `main` (spec §11.1).
 on:
   workflow_run:
     workflows: ["CI"]
@@ -11,67 +10,14 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: deploy-dev
-  cancel-in-progress: false
-
 jobs:
   deploy:
-    name: deploy to dev
-    runs-on: ubuntu-latest
-    # Only deploy if the upstream CI run was successful (and was on main).
+    # Only deploy if the upstream CI run passed and was on main.
     if: >-
       ${{ github.event.workflow_run.conclusion == 'success' &&
           github.event.workflow_run.head_branch == 'main' }}
-    environment:
-      name: dev
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF_DEV }}
-      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD_DEV }}
-      # AI provider smoke test (T-419) — gates the Edge Functions deploy.
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL_DEV }}
-      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY_DEV }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.workflow_run.head_sha }}
-
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
-        with:
-          version: latest
-
-      # TODO: wire link + push + deploy once a real Supabase project exists (deploy checklist §11.5).
-      - name: Push migrations + config (placeholder)
-        run: |
-          echo "Would run: supabase link --project-ref \"$SUPABASE_PROJECT_REF\""
-          echo "Would run: supabase db push --linked --password \"$SUPABASE_DB_PASSWORD\""
-          # `db push` only ships migrations (schema). `config push` applies the
-          # [auth]/[api] config from supabase/config.toml to the remote project
-          # — including additional_redirect_urls (the unibill://auth/* deep-link
-          # allow-list consumed by the mobile auth flows, T-515), password rules
-          # and token TTLs. Without it the deep-link allow-list never reaches the
-          # project and would have to be set by hand in the dashboard.
-          echo "Would run: supabase config push"
-
-      # Gate: ping every configured AI provider with a 1-token call before
-      # promoting functions, so a deprecated model (404) or the
-      # TBD_SET_AT_DEPLOY sentinel fails the deploy loudly (T-419, §11.5). Skips
-      # cleanly until the AI + service-role secrets are configured for the env.
-      - name: Setup Deno
-        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Smoke-test AI providers
-        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' && env.GEMINI_API_KEY != '' }}
-        run: deno run --allow-env --allow-net scripts/smoke_test_ai_providers.ts
-
-      - name: Deploy Edge Functions (placeholder)
-        run: |
-          echo "Would run: supabase functions deploy --project-ref \"$SUPABASE_PROJECT_REF\" --all"
+    uses: ./.github/workflows/deploy-supabase.yml
+    with:
+      environment: dev
+      ref: ${{ github.event.workflow_run.head_sha }}
+    secrets: inherit
