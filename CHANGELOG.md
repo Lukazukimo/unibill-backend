@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.1.11](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.10...v0.1.11) (2026-07-12)
+
+
+### Features
+
+* **admin:** System-admin promote/revoke + list backend (T-217) ([#296](https://github.com/Lukazukimo/unibill-backend/issues/296)) ([8e17b05](https://github.com/Lukazukimo/unibill-backend/commit/8e17b054decb9a29c654fcdc09b54eb2c4446b12))
+* **capacity:** Sys-admin capacity-status read endpoint (mobile [#31](https://github.com/Lukazukimo/unibill-backend/issues/31)) ([#283](https://github.com/Lukazukimo/unibill-backend/issues/283)) ([8414fc6](https://github.com/Lukazukimo/unibill-backend/commit/8414fc67f49dc553fbead4dcf32dc5c223f9a483))
+* **categories:** Seed system-default invoice categories per household (T-119, [#24](https://github.com/Lukazukimo/unibill-backend/issues/24)) ([#299](https://github.com/Lukazukimo/unibill-backend/issues/299)) ([b9081e5](https://github.com/Lukazukimo/unibill-backend/commit/b9081e58bc1f3c38a6f3e1df7bd059412a357afe))
+* **chain-health:** Sys-admin chain-health read endpoint (mobile [#32](https://github.com/Lukazukimo/unibill-backend/issues/32)) ([#284](https://github.com/Lukazukimo/unibill-backend/issues/284)) ([e50e73a](https://github.com/Lukazukimo/unibill-backend/commit/e50e73a6b19fbfa15d8ed916193e7a322941c30a))
+* **config:** Implement config-resolve Edge Function ([#278](https://github.com/Lukazukimo/unibill-backend/issues/278)) ([#280](https://github.com/Lukazukimo/unibill-backend/issues/280)) ([c668c8c](https://github.com/Lukazukimo/unibill-backend/commit/c668c8ca04db707a07909f536c8e9f65258d60b9))
+* **emails:** Emails-unbind Edge Function (owner-based, unibill-mobile[#71](https://github.com/Lukazukimo/unibill-backend/issues/71) Slice 2) ([#297](https://github.com/Lukazukimo/unibill-backend/issues/297)) ([8512cf6](https://github.com/Lukazukimo/unibill-backend/commit/8512cf6918544e760914247f50d462e6056b135c))
+* **events:** Sys-admin domain-events browser endpoint (T-634, mobile [#34](https://github.com/Lukazukimo/unibill-backend/issues/34)) ([#290](https://github.com/Lukazukimo/unibill-backend/issues/290)) ([bcf52c4](https://github.com/Lukazukimo/unibill-backend/commit/bcf52c4015dc86f3d5900bafbc5ebf526196ab90))
+* **eviction:** Sys-admin eviction-history browser endpoint (T-635, mobile [#34](https://github.com/Lukazukimo/unibill-backend/issues/34)) ([#292](https://github.com/Lukazukimo/unibill-backend/issues/292)) ([fd72dd1](https://github.com/Lukazukimo/unibill-backend/commit/fd72dd18636c27bbbc2540aa260cfe870578d653))
+* **households:** Seed default categories on household creation (T-119 wiring) ([#301](https://github.com/Lukazukimo/unibill-backend/issues/301)) ([31e5a90](https://github.com/Lukazukimo/unibill-backend/commit/31e5a90c91e4823ae49a944b98cb540177e5c2b2)), closes [#24](https://github.com/Lukazukimo/unibill-backend/issues/24)
+* **members:** Allow a member to leave a household on their own ([#279](https://github.com/Lukazukimo/unibill-backend/issues/279)) ([#282](https://github.com/Lukazukimo/unibill-backend/issues/282)) ([581a98e](https://github.com/Lukazukimo/unibill-backend/commit/581a98e5b2408d75d67c864ec3658feda7a90fae))
+* **telemetry:** Sys-admin telemetry-history browser endpoint (T-636, mobile [#34](https://github.com/Lukazukimo/unibill-backend/issues/34)) ([#294](https://github.com/Lukazukimo/unibill-backend/issues/294)) ([ed84874](https://github.com/Lukazukimo/unibill-backend/commit/ed84874beff4a017232bb1d28338709fa5642084))
+* **telemetry:** Telemetry-ingest Edge Function (T-513, [#85](https://github.com/Lukazukimo/unibill-backend/issues/85)) ([#300](https://github.com/Lukazukimo/unibill-backend/issues/300)) ([dd5e950](https://github.com/Lukazukimo/unibill-backend/commit/dd5e9508c9e73fe511829fee6cbd76113be21d56))
+
+
+### Bug Fixes
+
+* **config:** Defer pt-BR email template (free-tier blocks it) ([#309](https://github.com/Lukazukimo/unibill-backend/issues/309)) ([fd519ff](https://github.com/Lukazukimo/unibill-backend/commit/fd519ff1d03ea3442b8ba03c013048e205c0395f)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+* **config:** Sms_sent must be &gt;= 1 for hosted config push ([#308](https://github.com/Lukazukimo/unibill-backend/issues/308)) ([b376ef5](https://github.com/Lukazukimo/unibill-backend/commit/b376ef53bafbe5900bda4285baed233f08c3e83c)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+* **deploy:** Tolerate 402 on hosted-only auth config (HIBP is paid) ([#310](https://github.com/Lukazukimo/unibill-backend/issues/310)) ([d8464d1](https://github.com/Lukazukimo/unibill-backend/commit/d8464d1d1964c8d3e1d6020a2452949f037b5dbf)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+* **security:** Enable RLS on service-role-only tables + function hardening ([#304](https://github.com/Lukazukimo/unibill-backend/issues/304)) ([b47086e](https://github.com/Lukazukimo/unibill-backend/commit/b47086ebe523161b29677281d307bc7aa623837d)), closes [#303](https://github.com/Lukazukimo/unibill-backend/issues/303) [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+* **security:** Revoke anon/authenticated EXECUTE on 3 app rpc-exposed helpers (T-639) ([#311](https://github.com/Lukazukimo/unibill-backend/issues/311)) ([fe0b4bd](https://github.com/Lukazukimo/unibill-backend/commit/fe0b4bd54aa9837bcac9055b0c237f4a895e92f5)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+
+
+### Refactors
+
+* **rate-limit:** Atomic rate_limit_consume for all limiters (Refs [#85](https://github.com/Lukazukimo/unibill-backend/issues/85)) ([#302](https://github.com/Lukazukimo/unibill-backend/issues/302)) ([9f33964](https://github.com/Lukazukimo/unibill-backend/commit/9f3396480b538e6d4a1f2154cfcd341f5ffdc17d))
+
+
+### Tests
+
+* **invitations:** Exercise per-code lockout via distributed callers ([#204](https://github.com/Lukazukimo/unibill-backend/issues/204)) ([#298](https://github.com/Lukazukimo/unibill-backend/issues/298)) ([eb26c9d](https://github.com/Lukazukimo/unibill-backend/commit/eb26c9dac317e443a39bdb3d468f6e00e0815128))
+
+
+### CI / Tooling
+
+* **deploy:** Automated Supabase deploy pipeline (dev auto, prod gated) (T-638) ([#307](https://github.com/Lukazukimo/unibill-backend/issues/307)) ([bae880f](https://github.com/Lukazukimo/unibill-backend/commit/bae880f1811253299bdb3aff835906ae36ca9fa8)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+
+
+### Documentation
+
+* Add ENVIRONMENTS.md (Supabase dev/prod provisioning reference) ([#306](https://github.com/Lukazukimo/unibill-backend/issues/306)) ([894fd30](https://github.com/Lukazukimo/unibill-backend/commit/894fd30c4b513e0c19ffb30d13c56e2f78df7cd8)), closes [#1](https://github.com/Lukazukimo/unibill-backend/issues/1)
+
 ## [0.1.10](https://github.com/Lukazukimo/unibill-backend/compare/v0.1.9...v0.1.10) (2026-07-03)
 
 
